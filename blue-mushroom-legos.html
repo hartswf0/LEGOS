@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blue Mushroom LEGOS Story Prompts</title>
+  <style>
+    :root {
+      --lego-blue: #2576d2;
+      --lego-yellow: #F2CD37;
+      --lego-green: #237841;
+      --lego-purple: #81007B;
+      --lego-black: #05131D;
+      --lego-gray: #6C6E68;
+      --lego-white: #f5f5f5;
+    }
+    body {
+      background: linear-gradient(135deg, #0a1a2f 0%, #183059 100%);
+      color: #f5f5f5;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0; padding: 0;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      background: rgba(20,30,50,0.97);
+      border-radius: 16px;
+      box-shadow: 0 8px 40px #000a;
+      padding: 32px 28px 40px 28px;
+      text-align: center;
+    }
+    h1 {
+      color: var(--lego-blue);
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+      font-size: 2.2em;
+    }
+    .subtitle {
+      color: #b0d2f8;
+      font-size: 1.1em;
+      margin-bottom: 26px;
+    }
+    .lego-block {
+      display: inline-block;
+      margin: 8px 6px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 1.07em;
+      box-shadow: 0 2px 10px #0006;
+      background: var(--lego-blue);
+      color: #fff;
+      border: 2.5px solid #53a6ff;
+      position: relative;
+      transition: transform 0.15s;
+    }
+    .lego-block.character { background: var(--lego-yellow); color: var(--lego-black); border-color: #ffe066; }
+    .lego-block.setting { background: var(--lego-green); color: #fff; border-color: #4be08a; }
+    .lego-block.goal { background: var(--lego-purple); color: #fff; border-color: #c77dff; }
+    .lego-block.obstacle { background: var(--lego-gray); color: #fff; border-color: #b0b0b0; }
+    .lego-block.theme { background: var(--lego-blue); color: #fff; border-color: #53a6ff; }
+    .lego-block.mushroom { background: linear-gradient(90deg, #2576d2 60%, #53a6ff 100%); color: #fff; border-color: #53a6ff; }
+    .prompt-area {
+      margin: 32px 0 0 0;
+      padding: 24px 18px 18px 18px;
+      background: rgba(30,50,80,0.93);
+      border-radius: 12px;
+      box-shadow: 0 2px 18px #000a;
+      min-height: 120px;
+    }
+    .prompt-text {
+      margin-top: 18px;
+      font-size: 1.18em;
+      color: #e1eaff;
+      font-style: italic;
+    }
+    .generate-btn {
+      background: var(--lego-blue);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1em;
+      font-weight: bold;
+      padding: 14px 36px;
+      margin-top: 22px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #0007;
+      transition: background 0.2s;
+    }
+    .generate-btn:hover {
+      background: #53a6ff;
+      color: #0a1a2f;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Blue Mushroom LEGOS</h1>
+  <div class="subtitle">Quantum story prompt generator — blue mushroom as catalyst</div>
+  <div class="prompt-area" id="promptArea">
+    <div class="prompt-blocks" id="promptBlocks"></div>
+    <div class="prompt-text" id="promptText"></div>
+  </div>
+  <button class="generate-btn" id="generateBtn">Generate Blue Mushroom Story Prompt</button>
+</div>
+<script>
+const BLOCKS = {
+  mushroom: [
+    {type: 'mushroom', text: 'Blue Mushroom (Quantum Catalyst)'}
+  ],
+  character: [
+    {type: 'character', text: 'Wandering Botanist'},
+    {type: 'character', text: 'Lost Astronaut'},
+    {type: 'character', text: 'AI Dreamer'},
+    {type: 'character', text: 'Child with Secret'},
+    {type: 'character', text: 'Rebellious Mycologist'},
+    {type: 'character', text: 'Time-Looped Detective'}
+  ],
+  setting: [
+    {type: 'setting', text: 'Bioluminescent Forest'},
+    {type: 'setting', text: 'Abandoned Space Station'},
+    {type: 'setting', text: 'City Park at Dusk'},
+    {type: 'setting', text: 'Underground Fungal Network'},
+    {type: 'setting', text: 'Quantum Library'},
+    {type: 'setting', text: 'Forgotten Village'}
+  ],
+  goal: [
+    {type: 'goal', text: 'Find the Source'},
+    {type: 'goal', text: 'Escape the Loop'},
+    {type: 'goal', text: 'Decode the Spores'},
+    {type: 'goal', text: 'Awaken the Forest'},
+    {type: 'goal', text: 'Remember the Forgotten'},
+    {type: 'goal', text: 'Break the Spell'}
+  ],
+  obstacle: [
+    {type: 'obstacle', text: 'Time Loops'},
+    {type: 'obstacle', text: 'Mushroom Mind Meld'},
+    {type: 'obstacle', text: 'Reality Fractures'},
+    {type: 'obstacle', text: 'Language Dissolves'},
+    {type: 'obstacle', text: 'Ecological Rebellion'},
+    {type: 'obstacle', text: 'Parasitic Doubt'}
+  ],
+  theme: [
+    {type: 'theme', text: 'Identity Dissolution'},
+    {type: 'theme', text: 'Ecological Rebellion'},
+    {type: 'theme', text: 'Quantum Entanglement'},
+    {type: 'theme', text: 'Memory as Fungus'},
+    {type: 'theme', text: 'Anti-Tool Sovereignty'},
+    {type: 'theme', text: 'Ontological Rebellion'}
+  ]
+};
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function generatePrompt() {
+  const mushroom = BLOCKS.mushroom[0];
+  const character = pick(BLOCKS.character);
+  const setting = pick(BLOCKS.setting);
+  const goal = pick(BLOCKS.goal);
+  const obstacle = pick(BLOCKS.obstacle);
+  const theme = pick(BLOCKS.theme);
+
+  // Render LEGOS blocks visually
+  const blocksHTML = [mushroom, character, setting, goal, obstacle, theme].map(b =>
+    `<span class="lego-block ${b.type}">${b.text}</span>`
+  ).join('');
+  document.getElementById('promptBlocks').innerHTML = blocksHTML;
+
+  // Compose the story prompt
+  const prompt = `In a <b>${setting.text.toLowerCase()}</b>, <b>${character.text.toLowerCase()}</b> encounters the <b>blue mushroom</b> and must <b>${goal.text.toLowerCase()}</b> while facing <b>${obstacle.text.toLowerCase()}</b>. <br>Theme: <b>${theme.text}</b>.`;
+  document.getElementById('promptText').innerHTML = prompt;
+}
+
+document.getElementById('generateBtn').onclick = generatePrompt;
+generatePrompt(); // Generate on load
+</script>
+</body>
+</html>

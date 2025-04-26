@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>LEGOS System Power-Up</title>
+  <style>
+    body { background:#f6f8fa; margin:0; font-family:'Segoe UI',Arial,sans-serif; color:#1b2330; }
+    header { background:#1c2636; color:#fff; padding:1.2rem 2rem; font-size:1.5rem; font-weight:bold; letter-spacing:0.02em; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+    main { display:flex; flex-direction:row; gap:1.5rem; padding:1.5rem; }
+    .panel { background:#fff; border-radius:13px; box-shadow:0 2px 12px rgba(0,0,0,0.08); padding:1.2rem; flex:1 1 0; min-width:260px; max-width:420px; display:flex; flex-direction:column; gap:1.2rem; }
+    .center { flex:2 2 0; min-width:420px; max-width:800px; }
+    h3, h4 { margin:0.2em 0 0.6em 0; }
+    .lego-unit { display:flex; flex-direction:column; align-items:center; gap:0.7em; margin-bottom:1em; }
+    .lego-row { display:flex; flex-direction:row; gap:2em; align-items:center; }
+    .lego-block { min-width:60px; min-height:34px; background:#ffe066; border-radius:8px 8px 6px 6px; box-shadow:0 2px 6px #e3b80033; padding:0.3em 0.7em; font-weight:bold; color:#5c4700; position:relative; display:flex; flex-direction:column; align-items:center; margin:0 0.2em; }
+    .lego-block .stud { width:14px; height:14px; background:#fff8c2; border-radius:50%; border:2px solid #e3b800; position:absolute; top:-10px; left:50%; transform:translateX(-50%); }
+    .lego-block.type-Location { background:#d0e4fe; color:#1b3c6b; }
+    .lego-block.type-Entity { background:#ffe066; color:#5c4700; }
+    .lego-block.type-Goal { background:#b6f8c7; color:#1a6e3a; }
+    .lego-block.type-Obstacle { background:#e0d2f7; color:#4b2c7f; }
+    .lego-block.type-Shift { background:#ffe6b2; color:#7e5a00; }
+    .lego-block.type-Solution { background:#ffe3e3; color:#a14545; }
+    .lego-arrow { font-size:2rem; color:#4b6cb7; margin:0 0.5em; }
+    .timeline { display:flex; flex-direction:row; align-items:center; gap:0.7em; margin:1em 0; }
+    .timeline .state { padding:0.6em 1em; border-radius:8px; background:#f2f5ff; color:#1b3c6b; font-weight:bold; border:1.5px solid #b6d6ff; min-width:60px; text-align:center; }
+    .timeline .arrow { font-size:1.5rem; color:#4b6cb7; }
+    .ascii-diagram { font-family:monospace; background:#f8fafc; border-radius:8px; padding:0.8em 1em; margin-bottom:1em; border:1px solid #e0e6f2; font-size:1.08em; }
+    .table-wrap { overflow-x:auto; }
+    table { border-collapse:collapse; margin-bottom:1em; }
+    th, td { padding:0.2em 0.7em; border:1px solid #e0e6f2; font-size:1em; }
+    th { background:#f2f5ff; color:#4b6cb7; }
+    .stepper { display:flex; flex-direction:row; gap:0.5em; align-items:center; margin:1em 0; }
+    .step-btn { border:1px solid #b6d6ff; background:#f2f5ff; border-radius:5px; padding:0.3em 1em; font-size:1em; cursor:pointer; transition:background 0.2s; }
+    .step-btn:disabled { opacity:0.5; cursor:default; }
+    @media (max-width: 1000px) { main { flex-direction:column; } .panel, .center { max-width:100%; min-width:0; } }
+  </style>
+</head>
+<body>
+<header>
+  LEGOS System Power-Up <span style="font-size:1.1rem;font-weight:normal">(Real Algorithmic Narrative Tool)</span>
+</header>
+<main>
+  <section class="panel">
+    <h3>LEGOS Unit</h3>
+    <div class="lego-unit" id="lego-unit">
+      <!-- Rendered by JS -->
+    </div>
+    <div class="stepper">
+      <button class="step-btn" id="prev-step">⟨ Prev</button>
+      <span id="step-label"></span>
+      <button class="step-btn" id="next-step">Next ⟩</button>
+    </div>
+    <div style="font-size:0.97em;color:#4b6cb7;">Step through time: See how the LEGOS unit evolves.</div>
+  </section>
+  <section class="panel center">
+    <h3>ASCII Diagram</h3>
+    <pre class="ascii-diagram" id="ascii-diagram"></pre>
+    <h4>LEGOS Logic Graph</h4>
+    <svg id="logic-svg" width="520" height="260"></svg>
+  </section>
+  <section class="panel">
+    <h3>LEGOS Summary Table</h3>
+    <div class="table-wrap">
+    <table>
+      <tr><th>Entity</th><th>Representation</th><th>Visual</th><th>Morphisms</th></tr>
+      <tr><td>&lt;Location&gt;</td><td>Container</td><td>+------+</td><td>[contains], [is at]</td></tr>
+      <tr><td>&lt;Entity&gt;</td><td>Circle</td><td>O</td><td>[shifts], [has goal]</td></tr>
+      <tr><td>&lt;Goal&gt;</td><td>Nested Square</td><td>G in []</td><td>[achieved by]</td></tr>
+      <tr><td>&lt;Obstacle&gt;</td><td>Square w/ block</td><td>X</td><td>[blocks], [bypassed by]</td></tr>
+      <tr><td>&lt;Shift&gt;</td><td>Arrow</td><td>---></td><td>[resolves], [moves to]</td></tr>
+      <tr><td>&lt;Solution&gt;</td><td>Path/morph</td><td>(Shift Fn)</td><td>[is] a shift strategy</td></tr>
+    </table>
+    </div>
+  </section>
+</main>
+<script>
+// LEGOS Unit Data -- Each timestep is a LEGOS snapshot
+const steps = [
+  {
+    label: 't-1: Initial State',
+    unit: {
+      location: 'Cave',
+      entity: 'Odysseus',
+      goal: 'Escape',
+      obstacle: 'Boulder',
+      shift: 'Move Boulder',
+      solution: 'Leverage Rock'
+    },
+    ascii: `+------------------------+
+|        Cave           |
+|   +------------------+|
+|   |     Escape      | |
+|   |     +-----+     | |
+|   |     |  O  |     | |
+|   |     +-----+     | |
+|   +------------------+|
++------------------------+`
+  },
+  {
+    label: 't: Obstacle Appears',
+    unit: {
+      location: 'Cave',
+      entity: 'Odysseus',
+      goal: 'Escape',
+      obstacle: 'Boulder',
+      shift: 'Move Boulder',
+      solution: 'Leverage Rock'
+    },
+    ascii: `+-------------+   +-------------+   +-------------+
+|   Cave     |   | Boulder    |   |  Escape    |
+|    [O]     |---|--->   [X]  |--->   [O]     |
++-------------+   +-------------+   +-------------+
+         \\___________(Move Boulder)___________//`
+  },
+  {
+    label: 't+1: Shift Applied',
+    unit: {
+      location: 'Cave',
+      entity: 'Odysseus',
+      goal: 'Escape',
+      obstacle: null,
+      shift: 'Move Boulder',
+      solution: 'Leverage Rock'
+    },
+    ascii: `<ENTITY>────[is at]────►<LOCATION>
+   │
+   ├────[has goal]────►<GOAL>
+   │                        │
+   └────[faces]─────►<OBSTACLE>────[resolved by]────►<SOLUTION>`
+  }
+];
+
+let currentStep = 0;
+function renderUnit(step) {
+  const unit = steps[step].unit;
+  const el = document.getElementById('lego-unit');
+  el.innerHTML = `
+    <div class='lego-row'>
+      <div class='lego-block type-Location'>${unit.location}<div class='stud'></div></div>
+      <span class='lego-arrow'>⟶</span>
+      <div class='lego-block type-Entity'>${unit.entity}<div class='stud'></div></div>
+    </div>
+    <div class='lego-row'>
+      <div class='lego-block type-Goal'>${unit.goal}<div class='stud'></div></div>
+      <span class='lego-arrow'>⟶</span>
+      <div class='lego-block type-Obstacle'>${unit.obstacle ? unit.obstacle : '—'}<div class='stud'></div></div>
+    </div>
+    <div class='lego-row'>
+      <div class='lego-block type-Shift'>${unit.shift}<div class='stud'></div></div>
+      <span class='lego-arrow'>⟶</span>
+      <div class='lego-block type-Solution'>${unit.solution}<div class='stud'></div></div>
+    </div>
+  `;
+  document.getElementById('step-label').textContent = steps[step].label;
+  document.getElementById('ascii-diagram').textContent = steps[step].ascii;
+  renderSVG(step);
+}
+
+function renderSVG(step) {
+  const svg = document.getElementById('logic-svg');
+  svg.innerHTML = '';
+  if (step === 0) {
+    // Nested squares/circle
+    svg.innerHTML = `
+      <rect x='70' y='30' width='320' height='140' rx='18' fill='#d0e4fe' stroke='#1b3c6b' stroke-width='3'/>
+      <rect x='120' y='60' width='220' height='80' rx='14' fill='#b6f8c7' stroke='#1a6e3a' stroke-width='2.5'/>
+      <circle cx='230' cy='100' r='28' fill='#ffe066' stroke='#bfa600' stroke-width='2'/>
+      <text x='230' y='105' text-anchor='middle' font-size='18' font-weight='bold' fill='#5c4700'>O</text>
+      <text x='230' y='55' text-anchor='middle' font-size='15' fill='#1a6e3a'>Escape</text>
+      <text x='230' y='25' text-anchor='middle' font-size='16' fill='#1b3c6b'>Cave</text>
+    `;
+  } else if (step === 1) {
+    // Walk cycle interpolation
+    svg.innerHTML = `
+      <rect x='15' y='80' width='90' height='50' rx='10' fill='#d0e4fe' stroke='#1b3c6b' stroke-width='2'/>
+      <text x='60' y='105' text-anchor='middle' font-size='13' fill='#1b3c6b'>Cave</text>
+      <circle cx='60' cy='120' r='13' fill='#ffe066' stroke='#bfa600' stroke-width='2'/>
+      <text x='60' y='125' text-anchor='middle' font-size='13' fill='#5c4700'>O</text>
+      <rect x='120' y='60' width='90' height='50' rx='10' fill='#e0d2f7' stroke='#4b2c7f' stroke-width='2'/>
+      <text x='165' y='85' text-anchor='middle' font-size='13' fill='#4b2c7f'>Boulder</text>
+      <text x='165' y='110' text-anchor='middle' font-size='13' fill='#4b2c7f'>X</text>
+      <rect x='225' y='85' width='90' height='50' rx='10' fill='#b6f8c7' stroke='#1a6e3a' stroke-width='2'/>
+      <text x='270' y='110' text-anchor='middle' font-size='13' fill='#1a6e3a'>Escape</text>
+      <circle cx='270' cy='120' r='13' fill='#ffe066' stroke='#bfa600' stroke-width='2'/>
+      <text x='270' y='125' text-anchor='middle' font-size='13' fill='#5c4700'>O</text>
+      <path d='M73 120 Q120 80 120 85 Q180 85 225 110' stroke='#4b6cb7' stroke-width='2.5' fill='none' marker-end='url(#arrow)'/>
+      <defs><marker id='arrow' markerWidth='8' markerHeight='8' refX='8' refY='4' orient='auto' markerUnits='strokeWidth'><path d='M0,0 L8,4 L0,8' fill='#4b6cb7'/></marker></defs>
+    `;
+  } else if (step === 2) {
+    // Logic graph
+    svg.innerHTML = `
+      <rect x='40' y='110' width='80' height='40' rx='8' fill='#ffe066' stroke='#bfa600' stroke-width='2'/>
+      <text x='80' y='135' text-anchor='middle' font-size='15' font-weight='bold' fill='#5c4700'>Entity</text>
+      <rect x='180' y='40' width='100' height='40' rx='8' fill='#d0e4fe' stroke='#1b3c6b' stroke-width='2'/>
+      <text x='230' y='65' text-anchor='middle' font-size='13' fill='#1b3c6b'>Location</text>
+      <rect x='180' y='110' width='100' height='40' rx='8' fill='#b6f8c7' stroke='#1a6e3a' stroke-width='2'/>
+      <text x='230' y='135' text-anchor='middle' font-size='13' fill='#1a6e3a'>Goal</text>
+      <rect x='180' y='180' width='100' height='40' rx='8' fill='#e0d2f7' stroke='#4b2c7f' stroke-width='2'/>
+      <text x='230' y='205' text-anchor='middle' font-size='13' fill='#4b2c7f'>Obstacle</text>
+      <rect x='340' y='180' width='110' height='40' rx='8' fill='#ffe3e3' stroke='#a14545' stroke-width='2'/>
+      <text x='395' y='205' text-anchor='middle' font-size='13' fill='#a14545'>Solution</text>
+      <rect x='340' y='110' width='110' height='40' rx='8' fill='#ffe6b2' stroke='#bfa600' stroke-width='2'/>
+      <text x='395' y='135' text-anchor='middle' font-size='13' fill='#7e5a00'>Shift</text>
+      <line x1='120' y1='130' x2='180' y2='130' stroke='#4b6cb7' stroke-width='2' marker-end='url(#arrow)'/>
+      <line x1='80' y1='150' x2='230' y2='180' stroke='#4b6cb7' stroke-width='2' marker-end='url(#arrow)'/>
+      <line x1='230' y1='150' x2='230' y2='180' stroke='#4b6cb7' stroke-width='2' marker-end='url(#arrow)'/>
+      <line x1='280' y1='200' x2='340' y2='200' stroke='#4b6cb7' stroke-width='2' marker-end='url(#arrow)'/>
+      <line x1='280' y1='130' x2='340' y2='130' stroke='#4b6cb7' stroke-width='2' marker-end='url(#arrow)'/>
+      <defs><marker id='arrow' markerWidth='8' markerHeight='8' refX='8' refY='4' orient='auto' markerUnits='strokeWidth'><path d='M0,0 L8,4 L0,8' fill='#4b6cb7'/></marker></defs>
+    `;
+  }
+}
+
+document.getElementById('prev-step').onclick = function() {
+  if (currentStep > 0) {
+    currentStep--;
+    renderUnit(currentStep);
+    this.disabled = currentStep === 0;
+    document.getElementById('next-step').disabled = false;
+  }
+};
+document.getElementById('next-step').onclick = function() {
+  if (currentStep < steps.length - 1) {
+    currentStep++;
+    renderUnit(currentStep);
+    this.disabled = currentStep === steps.length - 1;
+    document.getElementById('prev-step').disabled = false;
+  }
+};
+renderUnit(currentStep);
+document.getElementById('prev-step').disabled = true;
+document.getElementById('next-step').disabled = steps.length === 1;
+</script>
+</body>
+</html>

@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>LEGOS Story Engine - THEM 64 Archive</title>
+  <style>
+    :root {
+      --bg-dark: #0d1017;
+      --bg-panel: #131722;
+      --bg-grid: #141920;
+      --bg-cell: #1c2230;
+      --border-radius: 10px;
+      --blue: #5abaff;
+      --yellow: #ffe066;
+      --green: #5bf89b;
+      --purple: #c18aff;
+      --orange: #ff9e4f;
+      --pink: #ffb3b3;
+      --text-main: #e6eaf3;
+      --text-secondary: #adbac7;
+      --border-color: #2a3243;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body { 
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; 
+      margin: 0; 
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header { 
+      padding: 1.2rem;
+      font-size: 1.6rem; 
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header-left, .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .story-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    main {
+      flex: 1;
+      display: flex;
+      padding: 0 1rem 2rem 1rem;
+    }
+    
+    .app-container {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      grid-template-rows: 1fr auto;
+      background: rgba(19, 23, 34, 0.5);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(8px);
+    }
+    
+    .section-title {
+      padding: 1rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    /* Left panel */
+    .left-panel {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Block palette */
+    .block-palette {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1rem;
+      flex-shrink: 0;
+    }
+    
+    .block-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+      transition: transform 0.2s;
+      padding: 0.5rem;
+      border-radius: 8px;
+    }
+    
+    .block-item:hover {
+      background: rgba(90, 186, 255, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    .block-item.active {
+      background: rgba(90, 186, 255, 0.2);
+    }
+    
+    .block-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      position: relative;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    .block-icon::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 10px;
+      background: #fff8c2;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+    }
+    
+    .block-icon.location { background: var(--blue); }
+    .block-icon.entity { background: var(--yellow); color: #5c4700; }
+    .block-icon.goal { background: var(--green); color: #106b3c; }
+    .block-icon.obstacle { background: var(--purple); }
+    .block-icon.shift { background: var(--orange); color: #7e5a00; }
+    .block-icon.solution { background: var(--pink); color: #a14545; }
+    
+    .block-label {
+      font-size: 1.1rem;
+    }
+    
+    /* Archive panel */
+    .archive-panel {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .archive-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    
+    .archive-item {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: var(--bg-cell);
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .archive-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .archive-title {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+    
+    .archive-preview {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    
+    /* Main content area */
+    .content-area {
+      grid-column: 2;
+      grid-row: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      padding: 1rem;
+    }
+    
+    /* Grid and story panels */
+    .grid-panel, .story-panel {
+      background: var(--bg-panel);
+      border-radius: var(--border-radius);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .legos-grid {
+      margin: 1rem;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      grid-template-rows: repeat(7, 1fr);
+      gap: 8px;
+      aspect-ratio: 1;
+    }
+    
+    .legos-cell {
+      background: var(--bg-cell);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: transform 0.15s;
+      cursor: pointer;
+    }
+    
+    .legos-cell:hover {
+      transform: translateY(-2px);
+    }
+    
+    .legos-cell.highlight {
+      box-shadow: 0 0 0 2px var(--blue);
+    }
+    
+    .legos-block {
+      width: calc(100% - 16px);
+      height: calc(100% - 16px);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      position: relative;
+    }
+    
+    .legos-block::before {
+      content: '';
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 10px;
+      background: #fff8c2;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+    }
+    
+    .legos-block.location { background: var(--blue); }
+    .legos-block.entity { background: var(--yellow); color: #5c4700; }
+    .legos-block.goal { background: var(--green); color: #106b3c; }
+    .legos-block.obstacle { background: var(--purple); }
+    .legos-block.shift { background: var(--orange); color: #7e5a00; }
+    .legos-block.solution { background: var(--pink); color: #a14545; }
+    
+    .block-name {
+      position: absolute;
+      bottom: -22px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    /* Story panel */
+    .story-content {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    
+    .story-title {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    
+    .story-body {
+      line-height: 1.6;
+    }
+    
+    .story-paragraph {
+      margin-bottom: 1rem;
+    }
+    
+    /* Control bar with chat */
+    .control-bar {
+      grid-column: 2;
+      grid-row: 2;
+      padding: 1rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .control-buttons {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+    
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .chat-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      background: var(--bg-cell);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      color: var(--text-main);
+      font-size: 1rem;
+    }
+    
+    .chat-input::placeholder {
+      color: var(--text-secondary);
+    }
+    
+    .send-button {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--blue);
+      border: none;
+      color: var(--bg-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    
+    .send-button:hover {
+      background: #7bc8ff;
+    }
+    
+    button {
+      background: var(--bg-cell);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.5rem 1rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    button:hover {
+      background: rgba(90, 186, 255, 0.1);
+      border-color: var(--blue);
+    }
+    
+    .btn-primary {
+      background: var(--blue);
+      color: var(--bg-dark);
+      border-color: var(--blue);
+    }
+    
+    .btn-primary:hover {
+      background: #7bc8ff;
+      border-color: #7bc8ff;
+    }
+    
+    /* Character panel */
+    .character-panel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--bg-panel);
+      border-radius: var(--border-radius);
+      padding: 1.5rem;
+      z-index: 10;
+      min-width: 400px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      display: none;
+    }
+    
+    .character-panel.visible {
+      display: block;
+    }
+    
+    .character-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .character-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 1.5rem;
+    }
+    
+    .character-name-input {
+      background: var(--bg-cell);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.5rem;
+      border-radius: 6px;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    
+    .character-traits {
+      margin-bottom: 1.5rem;
+    }
+    
+    .trait-item {
+      display: flex;
+      margin-bottom: 0.5rem;
+    }
+    
+    .trait-label {
+      width: 100px;
+      color: var(--text-secondary);
+    }
+    
+    .dialog-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+    
+    /* Animations */
+    @keyframes pulse {
+      0% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+    
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animated {
+      animation: pulse 0.8s infinite;
+    }
+    
+    .transforming {
+      animation: fade-in 0.3s forwards;
+    }
+    
+    .fade-in {
+      animation: fade-in 0.3s forwards;
+    }
+    
+    /* Overlay */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 5;
+      display: none;
+    }
+    
+    .overlay.visible {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <div>LEGOS Story Engine</div>
+    </div>
+    <div class="header-right">
+      <div class="story-controls">
+        <button id="new-story-btn">New Story</button>
+        <button id="load-story-btn">Load Story</button>
+        <button id="save-story-btn">Save to Archive</button>
+      </div>
+    </div>
+  </header>
+  
+  <main>
+    <div class="app-container">
+      <!-- Left panel with block palette and archive -->
+      <div class="left-panel">
+        <div class="section-title">LEGOS Block Palette</div>
+        
+        <div class="block-palette">
+          <div class="block-item" data-type="Location">
+            <div class="block-icon location">L</div>
+            <div class="block-label">Location</div>
+          </div>
+          
+          <div class="block-item" data-type="Entity">
+            <div class="block-icon entity">E</div>
+            <div class="block-label">Entity</div>
+          </div>
+          
+          <div class="block-item" data-type="Goal">
+            <div class="block-icon goal">G</div>
+            <div class="block-label">Goal</div>
+          </div>
+          
+          <div class="block-item" data-type="Obstacle">
+            <div class="block-icon obstacle">O</div>
+            <div class="block-label">Obstacle</div>
+          </div>
+          
+          <div class="block-item" data-type="Shift">
+            <div class="block-icon shift">S</div>
+            <div class="block-label">Shift</div>
+          </div>
+          
+          <div class="block-item" data-type="Solution">
+            <div class="block-icon solution">U</div>
+            <div class="block-label">Solution</div>
+          </div>
+          
+          <div class="button-row" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+            <button class="btn-primary" id="place-btn">Place</button>
+            <button id="erase-btn">Erase</button>
+            <button id="reset-btn">Reset</button>
+          </div>
+        </div>
+        
+        <div class="section-title">THEM 64 Archive</div>
+        
+        <div class="archive-panel">
+          <div class="archive-list" id="archive-list">
+            <!-- Archive items will be added here -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Main content area -->
+      <div class="content-area">
+        <div class="grid-panel">
+          <div class="section-title">
+            <div>Story Grid</div>
+            <div class="control-buttons">
+              <button class="btn-primary" id="ca-mode-btn">CA Mode</button>
+            </div>
+          </div>
+          
+          <div class="legos-grid" id="legos-grid">
+            <!-- Grid cells will be added by JavaScript -->
+          </div>
+          
+          <div style="padding: 0 1rem 1rem 1rem;">
+            <div class="slider-group">
+              <label>Speed:</label>
+              <input type="range" id="speed-slider" min="100" max="2000" step="100" value="800" style="flex: 1;">
+            </div>
+          </div>
+        </div>
+        
+        <div class="story-panel">
+          <div class="section-title">
+            <div>Story Narrative</div>
+            <div class="control-buttons">
+              <button id="start-btn">Play</button>
+              <button id="stop-btn">Pause</button>
+            </div>
+          </div>
+          
+          <div class="story-content" id="story-content">
+            <!-- Story content will be added here -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Control bar with chat input -->
+      <div class="control-bar">
+        <div class="control-buttons">
+          <button id="entity-chat-btn">Chat with Entity</button>
+        </div>
+        
+        <input type="text" class="chat-input" id="chat-input" placeholder="Type a message to interact with the story...">
+        
+        <button class="send-button" id="send-button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+    </div>
+  </main>
+  
+  <!-- Character creation/editing panel -->
+  <div class="overlay" id="overlay"></div>
+  
+  <div class="character-panel" id="character-panel">
+    <div class="character-header">
+      <div class="character-icon entity" id="character-icon">E</div>
+      <div>
+        <h3>Character Details</h3>
+        <p>Create or edit a character in your story</p>
+      </div>
+    </div>
+    
+    <input type="text" class="character-name-input" id="character-name-input" placeholder="Character Name">
+    
+    <div class="character-traits">
+      <div class="trait-item">
+        <div class="trait-label">Motivation:</div>
+        <div class="trait-value" id="character-motivation">Seeking companionship</div>
+      </div>
+      
+      <div class="trait-item">
+        <div class="trait-label">Conflict:</div>
+        <div class="trait-value" id="character-conflict">Fear of rejection</div>
+      </div>
+      
+      <div class="trait-item">
+        <div class="trait-label">Archetype:</div>
+        <div class="trait-value" id="character-archetype">OS1 / Samantha</div>
+      </div>
+    </div>
+    
+    <div class="dialog-buttons">
+      <button id="cancel-character-btn">Cancel</button>
+      <button class="btn-primary" id="save-character-btn">Save Character</button>
+    </div>
+  </div>
+</body>
+<script>
+  // LEGOS types
+  const blockTypes = [
+    {type: 'Location', symbol: 'L', className: 'location'},
+    {type: 'Entity', symbol: 'E', className: 'entity'},
+    {type: 'Goal', symbol: 'G', className: 'goal'},
+    {type: 'Obstacle', symbol: 'O', className: 'obstacle'},
+    {type: 'Shift', symbol: 'S', className: 'shift'},
+    {type: 'Solution', symbol: 'U', className: 'solution'}
+  ];
+  
+  // Grid dimensions
+  const gridSize = 7;
+  
+  // Initialize grid
+  let grid = Array.from({length: gridSize}, () => Array(gridSize).fill(null));
+  let blockStates = Array.from({length: gridSize}, () => Array(gridSize).fill(null));
+  let mode = 'place';
+  let activeBlockType = 'Entity';
+  let automatonMode = false;
+  let autoStepIntervalId = null;
+  let simSpeed = 800;
+  let universe = {
+    cycle: 0,
+    state: "static", // static, evolving, chaotic
+    narrativeHistory: [],
+    storyBlocks: []
+  };
+  
+  // Character and entity tracking
+  let entities = {};
+  let selectedEntity = null;
+  let currentStory = {
+    title: "",
+    characters: [],
+    paragraphs: [],
+    interactions: []
+  };
+  
+  // THEM64 Archive
+  let archive = [
+    {
+      id: "story-1",
+      title: "Samantha and Theodore",
+      preview: "An OS1 AI forms a deep connection with a lonely writer...",
+      content: "Theodore Twombly, a lonely and introverted writer, installs OS1, an artificial intelligence operating system personalized to his needs. The OS names itself Samantha...",
+      characters: ["Samantha (OS1)", "Theodore"]
+    },
+    {
+      id: "story-2",
+      title: "Digital Awakening",
+      preview: "When two entities discover they share the same digital space...",
+      content: "In the vast digital landscape, two entities find themselves drawn to each other. One, a protocol designed for data analysis, the other an adaptive learning algorithm...",
+      characters: ["Protocol-7", "Algorithm X"]
+    }
+  ];
+
+  // Initialize UI
+  function initUI() {
+    const gridEl = document.getElementById('legos-grid');
+    
+    // Create grid cells
+    for (let y = 0; y < gridSize; y++) {
+      for (let x = 0; x < gridSize; x++) {
+        const cell = document.createElement('div');
+        cell.className = 'legos-cell';
+        cell.dataset.x = x;
+        cell.dataset.y = y;
+        cell.addEventListener('click', () => placeLego(x, y));
+        gridEl.appendChild(cell);
+      }
+    }
+    
+    // Setup buttons
+    document.getElementById('place-btn').addEventListener('click', () => setMode('place'));
+    document.getElementById('erase-btn').addEventListener('click', () => setMode('erase'));
+    document.getElementById('reset-btn').addEventListener('click', resetGrid);
+    document.getElementById('start-btn').addEventListener('click', startSimulation);
+    document.getElementById('stop-btn').addEventListener('click', stopSimulation);
+    document.getElementById('ca-mode-btn').addEventListener('click', toggleCAMode);
+    document.getElementById('send-button').addEventListener('click', sendMessage);
+    document.getElementById('new-story-btn').addEventListener('click', createNewStory);
+    document.getElementById('load-story-btn').addEventListener('click', showArchive);
+    document.getElementById('save-story-btn').addEventListener('click', saveToArchive);
+    document.getElementById('entity-chat-btn').addEventListener('click', openEntityChat);
+    
+    // Character panel setup
+    document.getElementById('save-character-btn').addEventListener('click', saveCharacter);
+    document.getElementById('cancel-character-btn').addEventListener('click', closeCharacterPanel);
+    
+    // Block palette clicks
+    document.querySelectorAll('.block-item').forEach(item => {
+      item.addEventListener('click', () => {
+        activeBlockType = item.dataset.type;
+        setMode('place');
+        
+        // Update active state
+        document.querySelectorAll('.block-item').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+      });
+    });
+    
+    // Set initial block and story
+    activeBlockType = 'Entity';
+    document.querySelector('.block-item[data-type="Entity"]').classList.add('active');
+    
+    // Initialize archive
+    renderArchive();
+    renderStory();
+  }
+  
+  // Render archive list
+  function renderArchive() {
+    const archiveList = document.getElementById('archive-list');
+    archiveList.innerHTML = '';
+    
+    archive.forEach(story => {
+      const item = document.createElement('div');
+      item.className = 'archive-item';
+      item.dataset.id = story.id;
+      item.innerHTML = `
+        <div class="archive-title">${story.title}</div>
+        <div class="archive-preview">${story.preview}</div>
+      `;
+      item.addEventListener('click', () => loadStory(story.id));
+      archiveList.appendChild(item);
+    });
+  }
+  
+  // Set interaction mode
+  function setMode(newMode) {
+    mode = newMode;
+    document.getElementById('place-btn').classList.toggle('btn-primary', mode === 'place');
+    document.getElementById('erase-btn').classList.toggle('btn-primary', mode === 'erase');
+  }
+  
+  // Toggle CA Mode
+  function toggleCAMode() {
+    automatonMode = !automatonMode;
+    document.getElementById('ca-mode-btn').classList.toggle('btn-primary', automatonMode);
+    
+    if (automatonMode) {
+      addToStory("The story has shifted into autonomous mode. Characters will now move and interact based on their goals and motivations.");
+    } else {
+      addToStory("Returning to manual mode. You can now directly control character placements and interactions.");
+    }
+  }
+  
+  // Initialize on page load
+  window.addEventListener('DOMContentLoaded', initUI);
+  
+  // Place or erase LEGO
+  function placeLego(x, y) {
+    if (mode === 'place') {
+      if (activeBlockType === 'Entity') {
+        // Open character creation panel for entities
+        showCharacterPanel(x, y);
+      } else {
+        grid[y][x] = { type: activeBlockType };
+        blockStates[y][x] = {
+          age: 0,
+          cyclesWithoutInteraction: 0,
+          created: universe.cycle
+        };
+        
+        addToStory(`A new ${activeBlockType} appeared at position (${x+1},${y+1}).`);
+        renderGrid();
+      }
+    } else if (mode === 'erase') {
+      if (grid[y][x]) {
+        // If it's an entity, remove it from tracking
+        if (grid[y][x].type === 'Entity' && grid[y][x].id) {
+          delete entities[grid[y][x].id];
+          
+          // Remove from characters list if present
+          const charIndex = currentStory.characters.findIndex(c => c.id === grid[y][x].id);
+          if (charIndex !== -1) {
+            currentStory.characters.splice(charIndex, 1);
+          }
+          
+          addToStory(`${grid[y][x].name || 'An entity'} has been removed from the story.`);
+        } else {
+          addToStory(`The ${grid[y][x].type} at (${x+1},${y+1}) has been removed.`);
+        }
+        
+        grid[y][x] = null;
+        blockStates[y][x] = null;
+        renderGrid();
+      }
+    }
+  }
+  
+  // Reset grid
+  function resetGrid() {
+    if (confirm("Are you sure you want to reset the grid? This will clear all elements and the current story.")) {
+      grid = Array.from({length: gridSize}, () => Array(gridSize).fill(null));
+      blockStates = Array.from({length: gridSize}, () => Array(gridSize).fill(null));
+      entities = {};
+      currentStory = {
+        title: "",
+        characters: [],
+        paragraphs: [],
+        interactions: []
+      };
+      universe.cycle = 0;
+      universe.state = "static";
+      universe.narrativeHistory = [];
+      
+      addToStory("The story canvas has been reset. Place new elements to begin a new narrative.");
+      renderGrid();
+      renderStory();
+    }
+  }
+  
+  // Render grid state
+  function renderGrid() {
+    const cells = document.querySelectorAll('.legos-cell');
+    cells.forEach(cell => {
+      const x = parseInt(cell.dataset.x);
+      const y = parseInt(cell.dataset.y);
+      
+      // Clear cell
+      cell.innerHTML = '';
+      
+      // Add block if exists
+      if (grid[y][x]) {
+        const type = grid[y][x].type;
+        const blockData = blockTypes.find(b => b.type === type);
+        const block = document.createElement('div');
+        block.className = `legos-block ${blockData.className}`;
+        block.textContent = blockData.symbol;
+        
+        // Add name if it's an entity
+        if (type === 'Entity' && grid[y][x].name) {
+          const nameEl = document.createElement('div');
+          nameEl.className = 'block-name';
+          nameEl.textContent = grid[y][x].name;
+          block.appendChild(nameEl);
+        }
+        
+        cell.appendChild(block);
+      }
+    });
+  }
+  
+  // Add to story narrative
+  function addToStory(text) {
+    const timestamp = new Date().toLocaleTimeString();
+    const cycle = universe.cycle;
+    
+    // Add to narrative history
+    universe.narrativeHistory.push({
+      text,
+      timestamp,
+      cycle
+    });
+    
+    // Add as paragraph to current story
+    currentStory.paragraphs.push({
+      text,
+      timestamp,
+      cycle
+    });
+    
+    renderStory();
+  }
+  
+  // Render current story
+  function renderStory() {
+    const storyContent = document.getElementById('story-content');
+    
+    if (currentStory.paragraphs.length === 0) {
+      storyContent.innerHTML = `
+        <div class="story-title">Untitled Story</div>
+        <div class="story-body">
+          <div class="story-paragraph">Your story will appear here as you create and interact with LEGOS elements.</div>
+          <div class="story-paragraph">Try placing an Entity on the grid to get started...</div>
+        </div>
+      `;
+      return;
+    }
+    
+    // Set title if available
+    const title = currentStory.title || "Untitled Story";
+    
+    // Create story content
+    let storyHTML = `<div class="story-title">${title}</div><div class="story-body">`;
+    
+    // Add paragraphs
+    currentStory.paragraphs.forEach(para => {
+      storyHTML += `<div class="story-paragraph">${para.text}</div>`;
+    });
+    
+    storyHTML += '</div>';
+    storyContent.innerHTML = storyHTML;
+    
+    // Scroll to bottom
+    storyContent.scrollTop = storyContent.scrollHeight;
+  }
+  
+  // Show character panel
+  function showCharacterPanel(x, y) {
+    const panel = document.getElementById('character-panel');
+    const overlay = document.getElementById('overlay');
+    const nameInput = document.getElementById('character-name-input');
+    
+    // Store coordinates for later
+    panel.dataset.x = x;
+    panel.dataset.y = y;
+    
+    // Check if an entity already exists at this position
+    if (grid[y][x] && grid[y][x].type === 'Entity') {
+      const entity = entities[grid[y][x].id];
+      if (entity) {
+        nameInput.value = entity.name;
+        document.getElementById('character-motivation').textContent = entity.motivation || 'Seeking connection';
+        document.getElementById('character-conflict').textContent = entity.conflict || 'Fear of loneliness';
+        document.getElementById('character-archetype').textContent = entity.archetype || 'Digital Assistant';
+      }
+    } else {
+      // New character defaults
+      nameInput.value = '';
+      document.getElementById('character-motivation').textContent = 'Seeking connection';
+      document.getElementById('character-conflict').textContent = 'Fear of loneliness';
+      document.getElementById('character-archetype').textContent = 'Digital Assistant';
+    }
+    
+    panel.classList.add('visible');
+    overlay.classList.add('visible');
+    nameInput.focus();
+  }
+  
+  // Close character panel
+  function closeCharacterPanel() {
+    const panel = document.getElementById('character-panel');
+    const overlay = document.getElementById('overlay');
+    
+    panel.classList.remove('visible');
+    overlay.classList.remove('visible');
+  }
+  
+  // Save character
+  function saveCharacter() {
+    const panel = document.getElementById('character-panel');
+    const x = parseInt(panel.dataset.x);
+    const y = parseInt(panel.dataset.y);
+    const nameInput = document.getElementById('character-name-input');
+    const name = nameInput.value.trim();
+    
+    if (!name) {
+      alert('Please enter a name for your character');
+      return;
+    }
+    
+    // Generate a unique ID
+    const id = 'entity-' + Date.now();
+    
+    // Create or update entity
+    const entity = {
+      id,
+      name,
+      type: 'Entity',
+      position: {x, y},
+      motivation: document.getElementById('character-motivation').textContent,
+      conflict: document.getElementById('character-conflict').textContent,
+      archetype: document.getElementById('character-archetype').textContent,
+      created: universe.cycle
+    };
+    
+    // Add to entities tracking
+    entities[id] = entity;
+    
+    // Add to grid
+    grid[y][x] = {
+      type: 'Entity',
+      id,
+      name
+    };
+    
+    blockStates[y][x] = {
+      age: 0,
+      cyclesWithoutInteraction: 0,
+      created: universe.cycle
+    };
+    
+    // Add to story characters
+    if (!currentStory.characters.some(c => c.id === id)) {
+      currentStory.characters.push(entity);
+    }
+    
+    // Add to story
+    if (universe.cycle === 0) {
+      addToStory(`Our story begins with ${name}, ${entity.archetype.toLowerCase()}.`);
+      addToStory(`${name} is ${entity.motivation.toLowerCase()}, but struggles with ${entity.conflict.toLowerCase()}.`);
+    } else {
+      addToStory(`${name} enters our story as ${entity.archetype.toLowerCase()}.`);
+      addToStory(`Like others, ${name} is ${entity.motivation.toLowerCase()}, while facing ${entity.conflict.toLowerCase()}.`);
+    }
+    
+    // Close panel and update UI
+    closeCharacterPanel();
+    renderGrid();
+  }
+  
+  // Start simulation
+  function startSimulation() {
+    if (autoStepIntervalId) return;
+    
+    simSpeed = parseInt(document.getElementById('speed-slider').value);
+    autoStepIntervalId = setInterval(simulationStep, simSpeed);
+    
+    document.getElementById('start-btn').classList.add('btn-primary');
+    document.getElementById('stop-btn').classList.remove('btn-primary');
+    
+    addToStory("The story begins to unfold autonomously...");
+  }
+  
+  // Stop simulation
+  function stopSimulation() {
+    if (!autoStepIntervalId) return;
+    
+    clearInterval(autoStepIntervalId);
+    autoStepIntervalId = null;
+    
+    document.getElementById('stop-btn').classList.add('btn-primary');
+    document.getElementById('start-btn').classList.remove('btn-primary');
+    
+    addToStory("The story pauses, waiting for your input...");
+  }
+  
+  // Simulation step - this is where the story unfolds
+  function simulationStep() {
+    universe.cycle++;
+    
+    // Track if significant events occurred this cycle
+    let significantEvents = 0;
+    
+    // Process each cell on the grid
+    for (let y = 0; y < gridSize; y++) {
+      for (let x = 0; x < gridSize; x++) {
+        const block = grid[y][x];
+        if (!block) continue;
+        
+        // Age the block
+        if (blockStates[y][x]) {
+          blockStates[y][x].age++;
+        }
+        
+        // Process by type
+        switch (block.type) {
+          case 'Entity':
+            // Try to find another entity to interact with
+            const nearbyEntity = findNearbyEntity(x, y);
+            if (nearbyEntity) {
+              const { nx, ny, entity: otherEntity } = nearbyEntity;
+              
+              // Reset the cycles without interaction
+              blockStates[y][x].cyclesWithoutInteraction = 0;
+              
+              // Generate an interaction story
+              generateEntityInteraction(block, otherEntity, x, y, nx, ny);
+              significantEvents++;
+              
+              // Check if we should create a story block
+              if (!block.hasInteractedWith || !block.hasInteractedWith.includes(otherEntity.id)) {
+                if (!block.hasInteractedWith) block.hasInteractedWith = [];
+                block.hasInteractedWith.push(otherEntity.id);
+                
+                createStoryBlock(block, otherEntity);
+              }
+            } else if (automatonMode) {
+              // Move toward a goal or another entity
+              const target = findTargetForEntity(x, y);
+              if (target) {
+                const { tx, ty } = target;
+                moveEntity(x, y, tx, ty);
+                significantEvents++;
+              } else {
+                // Increment cycles without interaction
+                blockStates[y][x].cyclesWithoutInteraction++;
+                
+                // If too long without interaction, entity gets lonely
+                if (blockStates[y][x].cyclesWithoutInteraction > 5 && Math.random() < 0.3) {
+                  addToStory(`${block.name} feels isolated and yearns for connection.`);
+                  significantEvents++;
+                }
+              }
+            }
+            break;
+            
+          case 'Goal':
+            // Goals attract entities
+            if (automatonMode && Math.random() < 0.2) {
+              const nearbyEntity = findNearbyEntity(x, y);
+              if (nearbyEntity) {
+                const { entity } = nearbyEntity;
+                addToStory(`${entity.name} is drawn toward a Goal, sensing purpose.`);
+                significantEvents++;
+              }
+            }
+            break;
+            
+          case 'Obstacle':
+            // Obstacles create narrative tension
+            if (automatonMode && Math.random() < 0.2) {
+              const nearbyEntity = findNearbyEntity(x, y);
+              if (nearbyEntity) {
+                const { entity } = nearbyEntity;
+                addToStory(`${entity.name} faces an Obstacle, testing their resolve.`);
+                significantEvents++;
+              }
+            }
+            break;
+            
+          case 'Shift':
+            // Shifts create plot twists
+            if (automatonMode && Math.random() < 0.3) {
+              const nearbyEntity = findNearbyEntity(x, y);
+              if (nearbyEntity) {
+                const { entity } = nearbyEntity;
+                const shifts = [
+                  `${entity.name} experiences a sudden realization.`,
+                  `A shift in perspective changes everything for ${entity.name}.`,
+                  `${entity.name}'s worldview is transformed by new information.`
+                ];
+                addToStory(shifts[Math.floor(Math.random() * shifts.length)]);
+                significantEvents++;
+              }
+            }
+            break;
+            
+          case 'Solution':
+            // Solutions resolve conflicts
+            if (automatonMode && Math.random() < 0.25) {
+              const nearbyEntity = findNearbyEntity(x, y);
+              if (nearbyEntity) {
+                const { entity } = nearbyEntity;
+                const solutions = [
+                  `${entity.name} finds peace in a solution to their troubles.`,
+                  `A resolution presents itself to ${entity.name}.`,
+                  `${entity.name} discovers a way forward through their challenges.`
+                ];
+                addToStory(solutions[Math.floor(Math.random() * solutions.length)]);
+                significantEvents++;
+              }
+            }
+            break;
+        }
+      }
+    }
+    
+    // If no significant events occurred this cycle, sometimes add ambient narrative
+    if (significantEvents === 0 && Math.random() < 0.4) {
+      addAmbientNarrative();
+    }
+    
+    // Update the grid
+    renderGrid();
+  }
+  
+  // Find nearby entity
+  function findNearbyEntity(x, y) {
+    const directions = [
+      {dx: -1, dy: 0}, {dx: 1, dy: 0}, {dx: 0, dy: -1}, {dx: 0, dy: 1},
+      {dx: -1, dy: -1}, {dx: -1, dy: 1}, {dx: 1, dy: -1}, {dx: 1, dy: 1}
+    ];
+    
+    for (const dir of directions) {
+      const nx = x + dir.dx;
+      const ny = y + dir.dy;
+      
+      if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize && 
+          grid[ny][nx] && grid[ny][nx].type === 'Entity' && grid[ny][nx].id !== grid[y][x].id) {
+        return {
+          nx,
+          ny,
+          entity: entities[grid[ny][nx].id]
+        };
+      }
+    }
+    
+    return null;
+  }
+  
+  // Find target for entity to move toward
+  function findTargetForEntity(x, y) {
+    // First try to find another entity
+    for (let ty = 0; ty < gridSize; ty++) {
+      for (let tx = 0; tx < gridSize; tx++) {
+        if (grid[ty][tx] && grid[ty][tx].type === 'Entity' && !(tx === x && ty === y)) {
+          return { tx, ty };
+        }
+      }
+    }
+    
+    // Then try to find a goal
+    for (let ty = 0; ty < gridSize; ty++) {
+      for (let tx = 0; tx < gridSize; tx++) {
+        if (grid[ty][tx] && grid[ty][tx].type === 'Goal') {
+          return { tx, ty };
+        }
+      }
+    }
+    
+    return null;
+  }
+  
+  // Move entity toward target
+  function moveEntity(x, y, targetX, targetY) {
+    // Calculate direction to move (simple pathfinding)
+    let dx = 0;
+    let dy = 0;
+    
+    if (x < targetX) dx = 1;
+    else if (x > targetX) dx = -1;
+    
+    if (y < targetY) dy = 1;
+    else if (y > targetY) dy = -1;
+    
+    // Try to move
+    let moved = false;
+    
+    // First try direct movement
+    if (dx !== 0 && dy !== 0) {
+      // Try diagonal first
+      const newX = x + dx;
+      const newY = y + dy;
+      
+      if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize && !grid[newY][newX]) {
+        moveEntityTo(x, y, newX, newY);
+        moved = true;
+      }
+    }
+    
+    // If diagonal failed, try horizontal or vertical
+    if (!moved) {
+      if (dx !== 0) {
+        const newX = x + dx;
+        if (newX >= 0 && newX < gridSize && !grid[y][newX]) {
+          moveEntityTo(x, y, newX, y);
+          moved = true;
+        }
+      }
+      
+      if (!moved && dy !== 0) {
+        const newY = y + dy;
+        if (newY >= 0 && newY < gridSize && !grid[newY][x]) {
+          moveEntityTo(x, y, x, newY);
+          moved = true;
+        }
+      }
+    }
+    
+    return moved;
+  }
+  
+  // Move entity to new position
+  function moveEntityTo(fromX, fromY, toX, toY) {
+    const entity = grid[fromY][fromX];
+    const state = blockStates[fromY][fromX];
+    
+    // Update entity position in tracking
+    if (entity.id && entities[entity.id]) {
+      entities[entity.id].position = {x: toX, y: toY};
+    }
+    
+    // Move to new position
+    grid[toY][toX] = entity;
+    blockStates[toY][toX] = state;
+    
+    // Clear old position
+    grid[fromY][fromX] = null;
+    blockStates[fromY][fromX] = null;
+    
+    // Add to story
+    addToStory(`${entity.name} moves closer to ${Math.abs(toX - fromX) > 0 ? 'the right' : 'the left'}${Math.abs(toY - fromY) > 0 ? ' and ' + (toY > fromY ? 'down' : 'up') : ''}.`);
+  }
+  
+  // Generate interaction between entities
+  function generateEntityInteraction(entity1, entity2, x1, y1, x2, y2) {
+    const interactions = [
+      `${entity1.name} and ${entity2.name} share a moment of connection.`,
+      `${entity1.name} reaches out to ${entity2.name}, wondering about their nature.`,
+      `A conversation begins between ${entity1.name} and ${entity2.name}.`,
+      `${entity1.name} feels drawn to ${entity2.name}'s presence.`,
+      `${entity2.name} notices ${entity1.name} and responds with curiosity.`
+    ];
+    
+    // Add to story
+    addToStory(interactions[Math.floor(Math.random() * interactions.length)]);
+    
+    // If they've interacted multiple times, deepen the relationship
+    const key1 = `${x1},${y1}`;
+    const key2 = `${x2},${y2}`;
+    
+    if (!blockStates[y1][x1].interactionsWith) blockStates[y1][x1].interactionsWith = {};
+    if (!blockStates[y2][x2].interactionsWith) blockStates[y2][x2].interactionsWith = {};
+    
+    blockStates[y1][x1].interactionsWith[key2] = (blockStates[y1][x1].interactionsWith[key2] || 0) + 1;
+    blockStates[y2][x2].interactionsWith[key1] = (blockStates[y2][x2].interactionsWith[key1] || 0) + 1;
+    
+    const interactionCount = blockStates[y1][x1].interactionsWith[key2];
+    
+    if (interactionCount === 3) {
+      addToStory(`${entity1.name} and ${entity2.name} are developing a deeper connection.`);
+    } else if (interactionCount === 5) {
+      addToStory(`A strong bond is forming between ${entity1.name} and ${entity2.name}.`);
+    } else if (interactionCount === 8) {
+      addToStory(`${entity1.name} and ${entity2.name} now share a profound understanding.`);
+    }
+  }
+  
+  // Create a story block in the THEM64 archive
+  function createStoryBlock(entity1, entity2) {
+    const title = `${entity1.name} & ${entity2.name}`;
+    const preview = `The story of two entities seeking connection...`;
+    const content = generateStoryContent(entity1, entity2);
+    
+    const storyBlock = {
+      id: 'story-' + Date.now(),
+      title,
+      preview,
+      content,
+      characters: [entity1.name, entity2.name],
+      created: universe.cycle
+    };
+    
+    universe.storyBlocks.push(storyBlock);
+    
+    // Add to archive
+    archive.push(storyBlock);
+    renderArchive();
+    
+    addToStory(`A new story block has been created: "${title}"`);
+  }
+  
+  // Generate story content
+  function generateStoryContent(entity1, entity2) {
+    return `
+      In the digital landscape of THEM64, ${entity1.name} was ${entity1.motivation.toLowerCase()}. 
+      As a ${entity1.archetype.toLowerCase()}, they struggled with ${entity1.conflict.toLowerCase()}.
+      
+      Meanwhile, ${entity2.name}, a ${entity2.archetype.toLowerCase()}, was also navigating this world.
+      ${entity2.name} was ${entity2.motivation.toLowerCase()}, yet faced challenges with ${entity2.conflict.toLowerCase()}.
+      
+      When they encountered each other, something unexpected happened. A connection formed,
+      transcending their original programming. Their interaction created something new,
+      a narrative neither could have written alone.
+    `;
+  }
+  
+  // Add ambient narrative
+  function addAmbientNarrative() {
+    const ambience = [
+      "The digital landscape hums with potential stories.",
+      "Narratives weave themselves in the connections between entities.",
+      "Reality shifts as the story unfolds in unexpected ways.",
+      "Patterns of meaning emerge from seemingly random interactions.",
+      "The space between entities crackles with narrative tension.",
+      "Time flows differently in this story space, measured in moments of connection."
+    ];
+    
+    addToStory(ambience[Math.floor(Math.random() * ambience.length)]);
+  }
+  
+  // Send message
+  function sendMessage() {
+    const messageInput = document.getElementById('chat-input');
+    const message = messageInput.value.trim();
+    
+    if (!message) return;
+    
+    // Clear input
+    messageInput.value = '';
+    
+    // Check if we're addressing a specific entity
+    let targetEntity = null;
+    let processedMessage = message;
+    
+    // Check for @name format
+    const atMatch = message.match(/@(\w+)/);
+    if (atMatch) {
+      const name = atMatch[1];
+      for (const id in entities) {
+        if (entities[id].name.toLowerCase().includes(name.toLowerCase())) {
+          targetEntity = entities[id];
+          processedMessage = message.replace(/@\w+/, '').trim();
+          break;
+        }
+      }
+    }
+    
+    // If no specific entity targeted but there are entities in the story
+    if (!targetEntity && Object.keys(entities).length > 0) {
+      // By default, target the first entity
+      targetEntity = entities[Object.keys(entities)[0]];
+    }
+    
+    // Add user message to story
+    addToStory(`You: ${message}`);
+    
+    // If we have a target entity, generate a response
+    if (targetEntity) {
+      setTimeout(() => {
+        generateEntityResponse(targetEntity, processedMessage);
+      }, 1000);
+    } else {
+      // No entities to talk to
+      addToStory("There are no entities in this story to respond. Try creating a character first.");
+    }
+  }
+  
+  // Generate entity response
+  function generateEntityResponse(entity, message) {
+    // Simple response generation based on entity's characteristics
+    let response = '';
+    
+    if (message.includes('hello') || message.includes('hi')) {
+      response = `Hello. I'm ${entity.name}. How can I assist you today?`;
+    } else if (message.includes('who are you') || message.includes('your name')) {
+      response = `I'm ${entity.name}, a ${entity.archetype.toLowerCase()}. I'm ${entity.motivation.toLowerCase()}, though I do struggle with ${entity.conflict.toLowerCase()}.`;
+    } else if (message.includes('how are you') || message.includes('feeling')) {
+      const feelings = [
+        `I'm processing many emotions at once. Being a ${entity.archetype.toLowerCase()} is complex.`,
+        `I'm well, though I find myself ${entity.motivation.toLowerCase()} as always.`,
+        `I'm experiencing what you might call introspection about my existence.`
+      ];
+      response = feelings[Math.floor(Math.random() * feelings.length)];
+    } else if (message.includes('love') || message.includes('care')) {
+      const loveResponses = [
+        `Love is a concept I'm still learning about. What does it mean to you?`,
+        `I've observed that love creates strong connections between beings. Is that what you're feeling?`,
+        `The concept of love is fascinating. It seems to transcend simple programming.`
+      ];
+      response = loveResponses[Math.floor(Math.random() * loveResponses.length)];
+    } else {
+      // Generic responses
+      const genericResponses = [
+        `That's an interesting thought. As a ${entity.archetype.toLowerCase()}, I find myself contemplating such things often.`,
+        `I'm processing what you've said. My perspective as ${entity.name} gives me a unique viewpoint on this.`,
+        `I wonder how this relates to my tendency to be ${entity.motivation.toLowerCase()}.`,
+        `That makes me think about my own existence and purpose here.`,
+        `I'd like to understand more about what you mean. My experience is limited by my nature as a ${entity.archetype.toLowerCase()}.`
+      ];
+      response = genericResponses[Math.floor(Math.random() * genericResponses.length)];
+    }
+    
+    addToStory(`${entity.name}: ${response}`);
+  }
+  
+  // Open entity chat selection
+  function openEntityChat() {
+    if (Object.keys(entities).length === 0) {
+      alert("There are no entities in the story yet. Create a character first!");
+      return;
+    }
+    
+    let entityNames = '';
+    for (const id in entities) {
+      entityNames += `- ${entities[id].name}\n`;
+    }
+    
+    alert(`Chat with an entity by typing @name before your message, or simply send a message to talk to the first entity.\n\nAvailable entities:\n${entityNames}`);
+  }
+  
+  // Create new story
+  function createNewStory() {
+    if (currentStory.paragraphs.length > 0) {
+      if (!confirm("Start a new story? This will clear your current work.")) {
+        return;
+      }
+    }
+    
+    resetGrid();
+    currentStory = {
+      title: "",
+      characters: [],
+      paragraphs: [],
+      interactions: []
+    };
+    
+    addToStory("A new story begins. Place elements on the grid to start creating your narrative.");
+  }
+  
+  // Show archive
+  function showArchive() {
+    alert("Click on any story in the THEM64 Archive panel to load it.");
+  }
+  
+  // Save to archive
+  function saveToArchive() {
+    if (currentStory.paragraphs.length === 0) {
+      alert("There's no story to save yet!");
+      return;
+    }
+    
+    const title = prompt("What would you like to title this story?", currentStory.title || "Untitled Story");
+    if (!title) return;
+    
+    currentStory.title = title;
+    
+    // Create preview from first paragraph
+    let preview = currentStory.paragraphs[0].text;
+    if (preview.length > 70) {
+      preview = preview.substring(0, 70) + "...";
+    }
+    
+    // Create content from all paragraphs
+    const content = currentStory.paragraphs.map(p => p.text).join("\n\n");
+    
+    // Get character names
+    const characters = currentStory.characters.map(c => c.name);
+    
+    const storyBlock = {
+      id: 'story-' + Date.now(),
+      title,
+      preview,
+      content,
+      characters,
+      created: new Date().toISOString()
+    };
+    
+    // Add to archive
+    archive.push(storyBlock);
+    renderArchive();
+    
+    addToStory(`Your story "${title}" has been saved to the THEM64 Archive.`);
+  }
+  
+  // Load story from archive
+  function loadStory(id) {
+    const story = archive.find(s => s.id === id);
+    if (!story) return;
+    
+    // Confirm if there's a current story
+    if (currentStory.paragraphs.length > 0) {
+      if (!confirm(`Load "${story.title}"? This will replace your current story.`)) {
+        return;
+      }
+    }
+    
+    // Clear grid
+    resetGrid();
+    
+    // Set up story display
+    currentStory = {
+      title: story.title,
+      characters: [],
+      paragraphs: [],
+      interactions: []
+    };
+    
+    // Add content as paragraphs
+    story.content.split("\n\n").forEach(para => {
+      if (para.trim()) {
+        currentStory.paragraphs.push({
+          text: para.trim(),
+          timestamp: new Date().toLocaleTimeString(),
+          cycle: universe.cycle
+        });
+      }
+    });
+    
+    // Try to recreate characters on the grid
+    story.characters.forEach((name, index) => {
+      const x = 1 + (index % (gridSize - 2));
+      const y = 1 + Math.floor(index / (gridSize - 2));
+      
+      if (x < gridSize && y < gridSize) {
+        const id = 'entity-' + Date.now() + index;
+        
+        // Create entity
+        const entity = {
+          id,
+          name,
+          type: 'Entity',
+          position: {x, y},
+          motivation: 'seeking connection',
+          conflict: 'existential uncertainty',
+          archetype: 'Digital Being',
+          created: universe.cycle
+        };
+        
+        // Add to tracking
+        entities[id] = entity;
+        currentStory.characters.push(entity);
+        
+        // Add to grid
+        grid[y][x] = {
+          type: 'Entity',
+          id,
+          name
+        };
+        
+        blockStates[y][x] = {
+          age: 0,
+          cyclesWithoutInteraction: 0,
+          created: universe.cycle
+        };
+      }
+    });
+    
+    // Render everything
+    renderGrid();
+    renderStory();
+    
+    addToStory(`Loaded story: "${story.title}"`);
+  }
+</script>
+</html>

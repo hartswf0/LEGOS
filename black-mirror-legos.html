@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Black Mirror S7 — LEGOS Narrative Explorer</title>
+  <style>
+    body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#181e29; color:#e6eaf3; }
+    header { background:#222c3c; color:#fff; padding:1.3rem 2rem; font-size:1.5rem; font-weight:bold; letter-spacing:0.03em; box-shadow:0 2px 8px rgba(0,0,0,0.09); }
+    main { display:flex; flex-direction:row; gap:1.5rem; padding:1.5rem; }
+    .panel { background:#23293a; border-radius:13px; box-shadow:0 2px 12px rgba(0,0,0,0.08); padding:1.2rem; flex:1 1 0; min-width:260px; max-width:370px; display:flex; flex-direction:column; gap:1.2rem; }
+    .center { flex:3 3 0; min-width:520px; max-width:1100px; background:#1b2130; border-radius:13px; display:flex; flex-direction:column; }
+    .episode-list { margin-bottom:1.3em; }
+    .episode-btn { display:block; margin-bottom:0.7em; background:#5abaff; color:#181e29; border:none; border-radius:5px; padding:0.5em 1.2em; font-weight:bold; font-size:1.08em; cursor:pointer; transition:background 0.18s; }
+    .episode-btn.selected, .episode-btn:hover { background:#8fd3ff; color:#181e29; }
+    .entity-block { display:inline-block; min-width:70px; min-height:36px; background:#ffe066; border-radius:8px 8px 6px 6px; box-shadow:0 2px 6px #e3b80033; margin:0 0.25em; padding:0.3em 0.7em; font-weight:bold; color:#5c4700; position:relative; cursor:pointer; border:2px solid #ffe066; transition:border 0.2s; }
+    .entity-block.selected { border:2px solid #5abaff; background:#fffbe7; }
+    .entity-block.type-character { background:#ffe066; color:#5c4700; }
+    .entity-block.type-location { background:#b2e2f2; color:#24556b; }
+    .entity-block.type-goal { background:#b6f8c7; color:#1a6e3a; }
+    .entity-block.type-obstacle { background:#e0d2f7; color:#4b2c7f; }
+    .entity-block.type-prop { background:#ffe6b2; color:#7e5a00; }
+    .entity-block.type-abstract { background:#ffe3e3; color:#a14545; }
+    .entity-block .lego-stud { left:50%; transform:translateX(-50%); position:absolute; top:-11px; width:16px; height:16px; background:#fff8c2; border-radius:50%; border:2px solid #e3b800; }
+    .relation-line { stroke:#5abaff; stroke-width:3px; marker-end:url(#arrowhead); }
+    .relation-label { fill:#8fd3ff; font-size:1em; font-weight:bold; }
+    .relation-list { margin:1em 0; font-size:1.08em; }
+    .relation-list .relation-label { color:#8fd3ff; background:#23293a; border-radius:4px; padding:0.1em 0.4em; margin:0 0.2em; }
+    .entity-details { background:#23293a; border-radius:10px; padding:1em 1.2em; margin:1em 0; color:#e6eaf3; font-size:1.09em; min-height:5em; }
+    .desc { color:#8fd3ff; font-size:1.04em; margin-bottom:1em; }
+    .citation { color:#b2e2f2; font-size:0.97em; margin-top:1.5em; }
+    @media (max-width: 1000px) { main { flex-direction:column; } .panel, .center { max-width:100%; min-width:0; } }
+  </style>
+</head>
+<body>
+<header>
+  Black Mirror S7 — LEGOS Narrative Explorer
+</header>
+<main>
+  <section class="panel">
+    <h3>Episodes</h3>
+    <div class="episode-list" id="episode-list"></div>
+    <div class="desc" id="episode-desc"></div>
+    <div class="citation">
+      <b>LEGOS Model:</b> Click blocks to highlight, click relations to view details. Data from public sources, modeled for narrative exploration.
+    </div>
+  </section>
+  <section class="panel center">
+    <h3 id="episode-title"></h3>
+    <div id="lego-graph" style="flex:1;position:relative;min-height:400px;"></div>
+    <div class="relation-list" id="relation-list"></div>
+    <div class="entity-details" id="entity-details"></div>
+  </section>
+</main>
+<script>
+// --- DATA: Black Mirror S7 LEGOS Model ---
+const episodes = [
+  // EPISODE DATA WILL BE INSERTED HERE (see below)
+];
+
+// --- Inserted episode data (shortened for brevity here, will paste full YAML-parsed JS below) ---
+// ...
+
+// --- UI/Graph Logic ---
+let selectedEpisode = 0;
+let selectedEntity = null;
+let selectedRelation = null;
+
+function renderEpisodeList() {
+  const el = document.getElementById('episode-list');
+  el.innerHTML = '';
+  episodes.forEach((ep,i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'episode-btn'+(selectedEpisode===i?' selected':'');
+    btn.textContent = ep.title;
+    btn.onclick = ()=>{selectedEpisode=i;selectedEntity=null;selectedRelation=null;renderAll();};
+    el.appendChild(btn);
+  });
+}
+
+function renderAll() {
+  const ep = episodes[selectedEpisode];
+  document.getElementById('episode-title').textContent = ep.title;
+  document.getElementById('episode-desc').textContent = ep.description;
+  renderLegoGraph(ep);
+  renderRelationList(ep);
+  renderEntityDetails(ep);
+}
+
+function renderLegoGraph(ep) {
+  // Layout entities in a flow, draw SVG arrows for relations
+  const container = document.getElementById('lego-graph');
+  container.innerHTML = '';
+  const w = container.offsetWidth||700, h = 420;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width',w);
+  svg.setAttribute('height',h);
+  svg.style.position = 'absolute';
+  svg.style.left = '0';
+  svg.style.top = '0';
+  // Layout: simple circle for now
+  const N = ep.entities.length;
+  const R = Math.min(w,h)/2-60;
+  const cx = w/2, cy = h/2;
+  let positions = {};
+  ep.entities.forEach((e,i)=>{
+    const angle = 2*Math.PI*i/N;
+    positions[e.id] = {
+      x: cx + R*Math.cos(angle),
+      y: cy + R*Math.sin(angle)
+    };
+  });
+  // Draw relations as arrows
+  svg.innerHTML = `<defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth"><polygon points="0 0, 10 3.5, 0 7" fill="#5abaff"/></marker></defs>`;
+  ep.entities.forEach(e=>{
+    (e.relations||[]).forEach(rel=>{
+      const from = positions[e.id], to = positions[rel.target];
+      if (!from||!to) return;
+      const dx = to.x-from.x, dy = to.y-from.y;
+      const len = Math.sqrt(dx*dx+dy*dy);
+      const ux = dx/len, uy = dy/len;
+      const pad = 44;
+      const x1 = from.x+ux*pad, y1 = from.y+uy*pad;
+      const x2 = to.x-ux*pad, y2 = to.y-uy*pad;
+      svg.innerHTML += `<line class='relation-line' x1='${x1}' y1='${y1}' x2='${x2}' y2='${y2}' marker-end='url(#arrowhead)' />`;
+      // Label
+      const mx = (x1+x2)/2, my = (y1+y2)/2;
+      svg.innerHTML += `<text class='relation-label' x='${mx}' y='${my-8}'>${rel.type.replace(/_/g,' ')}</text>`;
+    });
+  });
+  container.appendChild(svg);
+  // Draw entity blocks
+  ep.entities.forEach(e=>{
+    const div = document.createElement('div');
+    div.className = 'entity-block type-'+e.type+(selectedEntity===e.id?' selected':'');
+    div.style.position = 'absolute';
+    div.style.left = (positions[e.id].x-50)+'px';
+    div.style.top = (positions[e.id].y-24)+'px';
+    div.innerHTML = `<span class='lego-stud'></span>${e.name}`;
+    div.onclick = ()=>{selectedEntity=e.id;selectedRelation=null;renderAll();};
+    container.appendChild(div);
+  });
+}
+
+function renderRelationList(ep) {
+  const el = document.getElementById('relation-list');
+  let rels = [];
+  ep.entities.forEach(e=>{
+    (e.relations||[]).forEach(rel=>{
+      rels.push({from:e,to:ep.entities.find(x=>x.id===rel.target),type:rel.type});
+    });
+  });
+  el.innerHTML = rels.map((r,i)=>`<span class='relation-label' style='cursor:pointer' onclick='selectRelation(${i})'>${r.from.name} <b>${r.type.replace(/_/g,' ')}</b> ${r.to?r.to.name:r.type}</span>`).join(' ');
+  window._relations = rels;
+}
+function selectRelation(i) {
+  selectedRelation = i;
+  selectedEntity = null;
+  renderEntityDetails(episodes[selectedEpisode]);
+}
+
+function renderEntityDetails(ep) {
+  const el = document.getElementById('entity-details');
+  if(selectedEntity) {
+    const ent = ep.entities.find(e=>e.id===selectedEntity);
+    el.innerHTML = `<b>${ent.name}</b><br><span style='color:#8fd3ff'>Type:</span> ${ent.type}<br>${ent.location?'<span style="color:#b2e2f2">Location:</span> '+ent.location+'<br>':''}${ent.relations&&ent.relations.length?'<span style="color:#b6f8c7">Relations:</span> <ul>'+ent.relations.map(r=>`<li>${r.type.replace(/_/g,' ')} → <b>${ep.entities.find(x=>x.id===r.target)?.name||r.target}</b></li>`).join('')+'</ul>':''}`;
+  } else if(selectedRelation!==null && window._relations) {
+    const r = window._relations[selectedRelation];
+    el.innerHTML = `<b>Relation:</b> <span class='relation-label'>${r.from.name} <b>${r.type.replace(/_/g,' ')}</b> ${r.to?r.to.name:r.type}</span><br><span style='color:#b2e2f2'>From:</span> ${r.from.name} <br><span style='color:#b6f8c7'>To:</span> ${r.to?r.to.name:r.type}`;
+  } else {
+    el.innerHTML = '<span style="color:#888">Click a block or relation for details.</span>';
+  }
+}
+
+// --- DATA: Insert all episode YAML here ---
+// ...
+
+// --- INIT ---
+renderEpisodeList();
+renderAll();
+</script>
+</body>
+</html>

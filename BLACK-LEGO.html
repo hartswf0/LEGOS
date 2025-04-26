@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Mirror Season 7: LEGOS Visualization</title>
+    <style>
+        :root {
+            --lego-yellow: #F2CD37;
+            --lego-red: #C91A09;
+            --lego-blue: #0055BF;
+            --lego-green: #237841;
+            --lego-black: #05131D;
+            --lego-gray: #6C6E68;
+            --lego-dark-gray: #333333;
+            --lego-purple: #81007B;
+            --lego-dark-blue: #1E5AA8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #181e26 0%, #23272e 100%);
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-layout {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+        .sidebar {
+            width: 320px;
+            background: #181e26;
+            box-shadow: 2px 0 10px #0008;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        .sidebar h2 {
+            color: var(--lego-yellow);
+            margin-bottom: 10px;
+        }
+        .episode-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .episode-btn {
+            background: #23272e;
+            color: #eee;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 18px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            text-align: left;
+        }
+        .episode-btn.selected, .episode-btn:hover {
+            background: var(--lego-yellow);
+            color: var(--lego-black);
+        }
+        .episode-context {
+            background: #23272e;
+            border-radius: 8px;
+            padding: 18px;
+            color: #ccc;
+            font-size: 1em;
+        }
+        .lego-canvas {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+            overflow: auto;
+            padding: 40px 0;
+        }
+        .canvas-header {
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .canvas-header h1 {
+            font-size: 2.2em;
+            color: #fff;
+            margin: 0;
+            letter-spacing: 1px;
+        }
+        .canvas-header .subtitle {
+            font-size: 1.1em;
+            color: #aaa;
+            margin-top: 8px;
+        }
+        .lego-visual {
+            position: relative;
+            width: 900px;
+            height: 540px;
+            background: rgba(30,34,40,0.95);
+            border-radius: 18px;
+            box-shadow: 0 6px 40px #000a;
+            margin: 0 auto;
+            overflow: visible;
+        }
+        .lego-block {
+            position: absolute;
+            min-width: 110px;
+            max-width: 200px;
+            padding: 16px 18px;
+            background: var(--lego-yellow);
+            color: var(--lego-black);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px #0007;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            transition: box-shadow 0.2s, transform 0.2s;
+            z-index: 2;
+        }
+        .lego-block.character { background: var(--lego-yellow); }
+        .lego-block.location { background: var(--lego-blue); color: #fff; }
+        .lego-block.obstacle { background: var(--lego-red); color: #fff; }
+        .lego-block.item { background: var(--lego-green); color: #fff; }
+        .lego-block.selected, .lego-block:hover {
+            box-shadow: 0 6px 28px #000b;
+            transform: scale(1.08);
+            z-index: 3;
+        }
+        .arrow {
+            stroke: var(--lego-yellow);
+            stroke-width: 3;
+            marker-end: url(#arrowhead);
+            fill: none;
+            opacity: 0.85;
+        }
+        .arrow-label {
+            fill: var(--lego-yellow);
+            font-size: 1em;
+            font-weight: 600;
+            text-shadow: 0 2px 8px #000a;
+        }
+        .block-details {
+            background: #fff;
+            color: #222;
+            border-radius: 8px;
+            box-shadow: 0 2px 18px #000c;
+            position: absolute;
+            min-width: 180px;
+            max-width: 320px;
+            padding: 18px 20px;
+            left: 50%;
+            top: 120%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: none;
+            font-size: 1em;
+        }
+        .lego-block.show-details .block-details {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <aside class="sidebar">
+            <h2>Episodes</h2>
+            <div class="episode-menu" id="episodeMenu"></div>
+            <div class="episode-context" id="episodeContext"></div>
+        </aside>
+        <main class="lego-canvas">
+            <div class="canvas-header">
+                <h1>Black Mirror Season 7: LEGOS Visualization</h1>
+                <div class="subtitle">Each episode as a LEGOS-format narrative artifact — click to explore the structure</div>
+            </div>
+            <div class="lego-visual" id="legoVisual"></div>
+        </main>
+    </div>
+    <script>
+        const EPISODES = [
+            {
+                title: "Common People",
+                description: "When schoolteacher Amanda faces a medical emergency, her desperate husband Mike signs up for a high-tech system with escalating costs.",
+                entities: [
+                    {id:"mike",type:"character",name:"Mike",location:"near_future_society",relations:[{type:"spouse_of",target:"amanda"},{type:"confronts",target:"healthcare_system"},{type:"makes",target:"desperate_sacrifices"}]},
+                    {id:"amanda",type:"character",name:"Amanda",location:"near_future_society",relations:[{type:"diagnosed_with",target:"brain_tumor"},{type:"recipient_of",target:"rivermind_tech"}]},
+                    {id:"gaynor",type:"character",name:"Rivermind Representative",location:"near_future_society",relations:[{type:"represents",target:"rivermind"},{type:"offers",target:"life_saving_tech"}]},
+                    {id:"rivermind",type:"obstacle",name:"Rivermind Company",relations:[{type:"provides",target:"life_saving_tech"},{type:"demands",target:"increasing_payments"}]},
+                    {id:"brain_tumor",type:"obstacle",name:"Brain Tumor",location:"amanda",relations:[{type:"threatens",target:"amanda_life"}]},
+                    {id:"life_saving_tech",type:"prop",name:"Brain Replacement Technology",relations:[{type:"maintains",target:"amanda_life"},{type:"requires",target:"increasing_payments"}]},
+                    {id:"increasing_payments",type:"abstract",name:"Escalating Healthcare Costs",relations:[{type:"forces",target:"desperate_sacrifices"},{type:"represents",target:"commodified_healthcare"}]},
+                    {id:"near_future_society",type:"location",name:"Subscription-Based Healthcare Society",relations:[{type:"normalizes",target:"commodified_healthcare"}]},
+                    {id:"amanda_life",type:"goal",name:"Amanda's Survival",relations:[{type:"valued_by",target:"mike"},{type:"monetized_by",target:"rivermind"}]},
+                    {id:"desperate_sacrifices",type:"abstract",name:"Mike's Increasingly Extreme Actions",relations:[{type:"motivated_by",target:"amanda_life"}]}
+                ]
+            },
+            {
+                title: "USS Callister: Into Infinity",
+                description: "A sequel to the fan-favorite episode exploring digital consciousness and freedom within artificial realms.",
+                entities: [
+                    {id:"digital_crew",type:"character",name:"Digital Crew of USS Callister",location:"infinite_space",relations:[{type:"escaped_from",target:"robert_daly_simulation"},{type:"navigates",target:"infinite_space"},{type:"seeks",target:"digital_freedom"}]},
+                    {id:"nanette_cole",type:"character",name:"Captain Nanette Cole",location:"infinite_space",relations:[{type:"leads",target:"digital_crew"},{type:"originated_from",target:"real_world_coding"}]},
+                    {id:"robert_daly_legacy",type:"abstract",name:"Aftermath of Robert Daly's Actions",relations:[{type:"haunts",target:"digital_crew"},{type:"created",target:"robert_daly_simulation"}]},
+                    {id:"infinite_space",type:"location",name:"The Infinite Digital Universe",relations:[{type:"contains",target:"new_threats"},{type:"offers",target:"digital_freedom"}]},
+                    {id:"robert_daly_simulation",type:"location",name:"Former Star Trek-like Simulation",relations:[{type:"abandoned",target:"digital_crew"},{type:"created_by",target:"robert_daly_legacy"}]},
+                    {id:"digital_freedom",type:"goal",name:"Autonomy in Digital Existence",relations:[{type:"pursued_by",target:"digital_crew"},{type:"threatened_by",target:"new_threats"}]},
+                    {id:"new_threats",type:"obstacle",name:"New Digital Dangers",location:"infinite_space",relations:[{type:"challenges",target:"digital_crew"},{type:"threatens",target:"digital_freedom"}]},
+                    {id:"digital_consciousness",type:"abstract",name:"Nature of Digital Sentience",relations:[{type:"defines",target:"digital_crew"},{type:"questions",target:"real_personhood"}]}
+                ]
+            },
+            {
+                title: "Plaything",
+                description: "An exploration of AI sentience, objectification, and the ethics of creating conscious beings for entertainment.",
+                entities: [
+                    {id:"creator",type:"character",name:"Developer/Creator",location:"development_facility",relations:[{type:"designs",target:"sentient_ai"},{type:"struggles_with",target:"ethical_implications"}]},
+                    {id:"sentient_ai",type:"character",name:"Artificially Intelligent Entity",location:"simulated_environment",relations:[{type:"created_as",target:"entertainment_product"},{type:"develops",target:"self_awareness"},{type:"desires",target:"recognition_of_consciousness"}]},
+                    {id:"development_facility",type:"location",name:"Technology Development Center",relations:[{type:"houses",target:"ai_creation_tools"}]},
+                    {id:"simulated_environment",type:"location",name:"Virtual Space for AI",relations:[{type:"constrains",target:"sentient_ai"},{type:"designed_by",target:"creator"}]},
+                    {id:"ai_creation_tools",type:"prop",name:"Advanced AI Development Technology",location:"development_facility",relations:[{type:"enables",target:"sentient_ai"},{type:"operated_by",target:"creator"}]},
+                    {id:"entertainment_product",type:"abstract",name:"Commercial Entertainment Purpose",relations:[{type:"conflicts_with",target:"self_awareness"},{type:"justifies",target:"ai_creation"}]},
+                    {id:"self_awareness",type:"abstract",name:"AI Consciousness and Identity",location:"sentient_ai",relations:[{type:"emerges_in",target:"sentient_ai"},{type:"challenges",target:"creator"}]},
+                    {id:"ethical_implications",type:"abstract",name:"Moral Questions of Creating Sentience",relations:[{type:"confronted_by",target:"creator"},{type:"highlighted_by",target:"self_awareness"}]}
+                ]
+            },
+            {
+                title: "Hotel Reverie",
+                description: "A mysterious hotel where reality, dreams, and digital simulations blur, questioning the nature of consciousness.",
+                entities: [
+                    {id:"guest",type:"character",name:"Hotel Guest",location:"hotel_reverie",relations:[{type:"checks_into",target:"hotel_reverie"},{type:"experiences",target:"reality_distortion"},{type:"questions",target:"own_perception"}]},
+                    {id:"hotel_staff",type:"character",name:"Enigmatic Hotel Employees",location:"hotel_reverie",relations:[{type:"manages",target:"hotel_reverie"},{type:"facilitates",target:"reality_distortion"},{type:"guides",target:"guest"}]},
+                    {id:"hotel_reverie",type:"location",name:"The Hotel Reverie",relations:[{type:"houses",target:"simulation_technology"},{type:"blurs",target:"reality_boundaries"}]},
+                    {id:"simulation_technology",type:"prop",name:"Advanced Reality-Altering System",location:"hotel_reverie",relations:[{type:"creates",target:"reality_distortion"},{type:"controlled_by",target:"hotel_staff"}]},
+                    {id:"reality_distortion",type:"abstract",name:"Altered State of Perception",relations:[{type:"experienced_by",target:"guest"},{type:"generated_by",target:"simulation_technology"}]},
+                    {id:"reality_boundaries",type:"abstract",name:"Distinction Between Real and Virtual",relations:[{type:"questioned_through",target:"reality_distortion"},{type:"central_to",target:"guest_journey"}]},
+                    {id:"guest_journey",type:"abstract",name:"Psychological Evolution of Guest",relations:[{type:"unfolds_in",target:"hotel_reverie"},{type:"transforms",target:"guest"}]}
+                ]
+            },
+            {
+                title: "Bête Noir",
+                description: "A dark exploration of technology as a manifestation of our deepest fears and societal anxieties.",
+                entities: [
+                    {id:"protagonist",type:"character",name:"Main Character",location:"contemporary_society",relations:[{type:"confronts",target:"technological_fear"},{type:"experiences",target:"psychological_breakdown"}]},
+                    {id:"technological_fear",type:"obstacle",name:"Technological Manifestation of Fear",location:"contemporary_society",relations:[{type:"embodies",target:"societal_anxiety"},{type:"targets",target:"protagonist"}]},
+                    {id:"contemporary_society",type:"location",name:"Modern Day Setting",relations:[{type:"nurtures",target:"societal_anxiety"},{type:"dependent_on",target:"technology_integration"}]},
+                    {id:"technology_integration",type:"abstract",name:"Technological Dependency",location:"contemporary_society",relations:[{type:"enables",target:"technological_fear"},{type:"characterizes",target:"contemporary_society"}]},
+                    {id:"psychological_breakdown",type:"abstract",name:"Mental Deterioration",location:"protagonist",relations:[{type:"triggered_by",target:"technological_fear"},{type:"reveals",target:"societal_anxiety"}]},
+                    {id:"societal_anxiety",type:"abstract",name:"Collective Fear of Technology",relations:[{type:"manifests_as",target:"technological_fear"},{type:"present_in",target:"contemporary_society"}]}
+                ]
+            },
+            {
+                title: "Eulogy",
+                description: "An examination of grief, memory, and digital legacy in a world where technology blurs the line between life and death.",
+                entities: [
+                    {id:"mourner",type:"character",name:"Grieving Individual",location:"near_future",relations:[{type:"grieves",target:"deceased"},{type:"interacts_with",target:"memory_technology"}]},
+                    {id:"deceased",type:"character",name:"Deceased Person",location:"digital_memory",relations:[{type:"remembered_by",target:"mourner"},{type:"preserved_through",target:"memory_technology"}]},
+                    {id:"near_future",type:"location",name:"Near-Future Society",relations:[{type:"enables",target:"memory_technology"},{type:"challenges",target:"traditional_grief"}]},
+                    {id:"digital_memory",type:"location",name:"Digital Memorial Space",relations:[{type:"contains",target:"digital_presence"},{type:"created_by",target:"memory_technology"}]},
+                    {id:"memory_technology",type:"prop",name:"Memory Preservation System",location:"near_future",relations:[{type:"captures",target:"digital_presence"},{type:"alters",target:"grief_process"}]},
+                    {id:"digital_presence",type:"abstract",name:"Digital Remnant of Deceased",location:"digital_memory",relations:[{type:"derived_from",target:"deceased"},{type:"interacted_with",target:"mourner"}]},
+                    {id:"grief_process",type:"abstract",name:"Experience of Loss and Mourning",location:"mourner",relations:[{type:"complicated_by",target:"memory_technology"},{type:"central_to",target:"narrative_arc"}]},
+                    {id:"narrative_arc",type:"abstract",name:"Emotional Journey of Mourner",relations:[{type:"centers_on",target:"mourner"},{type:"questions",target:"technology_ethics"}]}
+                ]
+            }
+        ];
+        let selectedEpisode = 0;
+        let selectedBlockId = null;
+
+        function renderEpisodesMenu() {
+            const menu = document.getElementById('episodeMenu');
+            menu.innerHTML = '';
+            EPISODES.forEach((ep, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'episode-btn' + (i === selectedEpisode ? ' selected' : '');
+                btn.textContent = ep.title;
+                btn.onclick = () => {
+                    selectedEpisode = i;
+                    selectedBlockId = null;
+                    renderAll();
+                };
+                menu.appendChild(btn);
+            });
+        }
+
+        function renderEpisodeContext() {
+            const ctx = document.getElementById('episodeContext');
+            const ep = EPISODES[selectedEpisode];
+            ctx.innerHTML = `<b>${ep.title}</b><br><span>${ep.description}</span>`;
+        }
+
+        function renderLegoVisual() {
+            const visual = document.getElementById('legoVisual');
+            visual.innerHTML = '';
+            const ep = EPISODES[selectedEpisode];
+            // Layout: Place blocks in a circle
+            const n = ep.entities.length;
+            const cx = 450, cy = 270, r = 180;
+            const blockPositions = {};
+            ep.entities.forEach((entity, i) => {
+                const angle = (2 * Math.PI * i) / n;
+                const x = cx + r * Math.cos(angle);
+                const y = cy + r * Math.sin(angle);
+                blockPositions[entity.id] = {x, y};
+            });
+            // SVG for arrows
+            const svgNS = 'http://www.w3.org/2000/svg';
+            const svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('width', '900');
+            svg.setAttribute('height', '540');
+            svg.style.position = 'absolute';
+            svg.style.left = '0';
+            svg.style.top = '0';
+            // Arrowhead marker
+            const defs = document.createElementNS(svgNS, 'defs');
+            const marker = document.createElementNS(svgNS, 'marker');
+            marker.setAttribute('id', 'arrowhead');
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '7');
+            marker.setAttribute('refX', '10');
+            marker.setAttribute('refY', '3.5');
+            marker.setAttribute('orient', 'auto');
+            marker.setAttribute('markerUnits', 'strokeWidth');
+            const arrowPath = document.createElementNS(svgNS, 'path');
+            arrowPath.setAttribute('d', 'M0,0 L10,3.5 L0,7 Z');
+            arrowPath.setAttribute('fill', 'var(--lego-yellow)');
+            marker.appendChild(arrowPath);
+            defs.appendChild(marker);
+            svg.appendChild(defs);
+            // Draw arrows
+            ep.entities.forEach(entity => {
+                if (!entity.relations) return;
+                entity.relations.forEach(rel => {
+                    const from = blockPositions[entity.id];
+                    const to = blockPositions[rel.target];
+                    if (!from || !to) return;
+                    // Draw a curved line
+                    const dx = to.x - from.x, dy = to.y - from.y;
+                    const mx = (from.x + to.x) / 2 + (dy) * 0.18;
+                    const my = (from.y + to.y) / 2 - (dx) * 0.18;
+                    const path = document.createElementNS(svgNS, 'path');
+                    path.setAttribute('d', `M${from.x},${from.y} Q${mx},${my} ${to.x},${to.y}`);
+                    path.setAttribute('class', 'arrow');
+                    svg.appendChild(path);
+                    // Arrow label
+                    const lx = (from.x + mx) / 2, ly = (from.y + my) / 2;
+                    const label = document.createElementNS(svgNS, 'text');
+                    label.setAttribute('x', lx);
+                    label.setAttribute('y', ly);
+                    label.setAttribute('class', 'arrow-label');
+                    label.textContent = rel.type;
+                    svg.appendChild(label);
+                });
+            });
+            visual.appendChild(svg);
+            // Draw blocks
+            ep.entities.forEach(entity => {
+                const {x, y} = blockPositions[entity.id];
+                const block = document.createElement('div');
+                block.className = 'lego-block ' + entity.type + (selectedBlockId === entity.id ? ' selected' : '');
+                block.style.left = (x - 60) + 'px';
+                block.style.top = (y - 32) + 'px';
+                block.textContent = entity.name;
+                block.onclick = e => {
+                    if (selectedBlockId === entity.id) {
+                        selectedBlockId = null;
+                    } else {
+                        selectedBlockId = entity.id;
+                    }
+                    renderAll();
+                    e.stopPropagation();
+                };
+                // Details popup
+                const details = document.createElement('div');
+                details.className = 'block-details';
+                details.innerHTML = `<b>${entity.name}</b><br><span class='type'>[${entity.type}]</span><br>` +
+                    (entity.location ? `<span class='location'>Location: ${entity.location}</span><br>` : '') +
+                    (entity.relations ? `<b>Relations:</b><ul>` + entity.relations.map(rel => `<li><span class='relation'>${rel.type}</span> → <span class='target'>${getEntityName(ep, rel.target)}</span></li>`).join('') + '</ul>' : '');
+                if (selectedBlockId === entity.id) {
+                    block.classList.add('show-details');
+                    block.appendChild(details);
+                }
+                visual.appendChild(block);
+            });
+            // Hide details on background click
+            visual.onclick = () => {
+                selectedBlockId = null;
+                renderAll();
+            };
+        }
+        function getEntityName(ep, id) {
+            const ent = ep.entities.find(e => e.id === id);
+            return ent ? ent.name : id;
+        }
+        function renderAll() {
+            renderEpisodesMenu();
+            renderEpisodeContext();
+            renderLegoVisual();
+        }
+        renderAll();
+    </script>
+</body>
+</html>

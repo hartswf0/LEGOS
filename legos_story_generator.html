@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>LEGOS Story Generator</title>
+  <style>
+    body { margin:0; font-family: 'Segoe UI', Arial, sans-serif; background:#f7f8fa; color:#222; }
+    header { background:#2d3a4b; color:#fff; padding:1.2rem 2rem; font-size:1.45rem; font-weight:bold; }
+    main { display:flex; flex-direction:row; gap:1rem; padding:1rem; }
+    .panel { background:#fff; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,0.07); padding:1rem; flex:1 1 0; min-width:240px; max-width:370px; display:flex; flex-direction:column; gap:1rem; }
+    .center { flex:2 2 0; min-width:340px; max-width:600px; }
+    h3, h4 { margin:0.2em 0 0.6em 0; }
+    ul { list-style:none; padding:0; margin:0; }
+    li { margin-bottom:0.3em; display:flex; align-items:center; gap:0.5em; }
+    .block-type { background:#e8eefc; color:#4b6cb7; border-radius:3px; padding:0 0.35em; font-size:0.9em; margin-left:0.25em; }
+    button, select, input[type="text"] { font-size:1em; border-radius:4px; border:1px solid #c2cbe2; padding:0.3em 0.7em; margin:0.1em 0; background:#f8fafc; transition:background 0.2s; }
+    button:hover { background:#e5eaf6; cursor:pointer; }
+    .panel svg { width:100%; height:400px; background:#f8fafc; border-radius:7px; margin-bottom:0.5rem; }
+    .relation-type { color:#5b6c8c; font-weight:500; }
+    .narrative { background:#f9fbe7; border-radius:6px; padding:1em; font-size:1.06em; min-height:6em; margin-bottom:0.5em; white-space:pre-line; }
+    .preset-btns button { margin-right:0.5em; }
+    .grammar-table { font-size:0.98em; background:#f8fafc; border-radius:6px; padding:0.5em 1em; margin-bottom:1em; border:1px solid #e0e6f2; }
+    .grammar-table th, .grammar-table td { padding:0.2em 0.5em; }
+    .grammar-table th { color:#4b6cb7; }
+    .generate-btn { background:#e3fcec; color:#1a6e3a; border:1px solid #a5e2c5; font-weight:bold; margin-top:0.5em; }
+    @media (max-width: 900px) { main { flex-direction:column; } .panel, .center { max-width:100%; min-width:0; } }
+  </style>
+</head>
+<body>
+<header>
+  LEGOS Story Generator — <span style="font-size:1rem;font-weight:normal">Every story is a LEGOS structure</span>
+</header>
+<main>
+  <section class="panel">
+    <h3>Blocks (Typed LEGOS)</h3>
+    <ul id="blocks-list"></ul>
+    <form id="block-form" onsubmit="addBlock(event)">
+      <input id="block-name" type="text" placeholder="Name (e.g. Odysseus)" required style="width:48%">
+      <select id="block-type" required style="width:48%">
+        <option value="Entity">Entity</option>
+        <option value="Goal">Goal</option>
+        <option value="Obstacle">Obstacle</option>
+        <option value="Shift">Shift</option>
+        <option value="Location">Location</option>
+      </select>
+      <button type="submit">Add</button>
+    </form>
+    <h4 style="margin-top:1em;">LEGOS Grammar</h4>
+    <table class="grammar-table" border="0">
+      <tr><th>From</th><th>Relation</th><th>To</th></tr>
+      <tr><td>&lt;Entity&gt;</td><td>[is at]</td><td>&lt;Location&gt;</td></tr>
+      <tr><td>&lt;Entity&gt;</td><td>[has goal]</td><td>&lt;Goal&gt;</td></tr>
+      <tr><td>&lt;Goal&gt;</td><td>[is located at]</td><td>&lt;Location&gt;</td></tr>
+      <tr><td>&lt;Entity&gt;</td><td>[encounters]</td><td>&lt;Obstacle&gt;</td></tr>
+      <tr><td>&lt;Obstacle&gt;</td><td>[is at]</td><td>&lt;Location&gt;</td></tr>
+      <tr><td>&lt;Entity&gt;</td><td>[executes]</td><td>&lt;Shift&gt;</td></tr>
+      <tr><td>&lt;Shift&gt;</td><td>[resolves]</td><td>&lt;Obstacle&gt;</td></tr>
+      <tr><td>&lt;Shift&gt;</td><td>[satisfies]</td><td>&lt;Goal&gt;</td></tr>
+    </table>
+  </section>
+  <section class="panel center">
+    <h3>Connections (Morphisms)</h3>
+    <ul id="connections-list"></ul>
+    <form id="connection-form" onsubmit="addConnection(event)">
+      <select id="conn-from"></select>
+      <select id="conn-type"></select>
+      <select id="conn-to"></select>
+      <button type="submit">Add</button>
+    </form>
+    <button class="generate-btn" onclick="generateStory()">Generate Story</button>
+    <h3 style="margin-top:2em;">LEGOS Graph</h3>
+    <svg id="graph-svg"></svg>
+  </section>
+  <section class="panel">
+    <h3>Story Output</h3>
+    <div class="narrative" id="narrative-output"></div>
+    <h4>Presets</h4>
+    <div class="preset-btns">
+      <button onclick="loadPreset('cyclops')">Cyclops Kernel</button>
+      <button onclick="loadPreset('odyssey')">Odyssey Chain</button>
+      <button onclick="loadPreset('boss')">Boss Battle</button>
+      <button onclick="loadPreset('blank')">Blank</button>
+    </div>
+  </section>
+</main>
+<script>
+// --- Data Model ---
+let blocks = [];
+let connections = [];
+
+const LEGOS_GRAMMAR = [
+  {from:'Entity', type:'is at', to:'Location'},
+  {from:'Entity', type:'has goal', to:'Goal'},
+  {from:'Goal', type:'is located at', to:'Location'},
+  {from:'Entity', type:'encounters', to:'Obstacle'},
+  {from:'Obstacle', type:'is at', to:'Location'},
+  {from:'Entity', type:'executes', to:'Shift'},
+  {from:'Shift', type:'resolves', to:'Obstacle'},
+  {from:'Shift', type:'satisfies', to:'Goal'}
+];
+
+function resetState(newBlocks, newConnections) {
+  blocks = JSON.parse(JSON.stringify(newBlocks));
+  connections = JSON.parse(JSON.stringify(newConnections));
+  renderBlocks();
+  renderConnections();
+  renderGraph();
+  renderNarrative();
+  updateConnectionForm();
+}
+
+// --- Block Functions ---
+function addBlock(e) {
+  e.preventDefault();
+  const name = document.getElementById('block-name').value.trim();
+  const type = document.getElementById('block-type').value;
+  if (!name || blocks.find(b => b.name === name)) return;
+  blocks.push({ name, type });
+  document.getElementById('block-name').value = '';
+  renderBlocks();
+  updateConnectionForm();
+}
+function deleteBlock(name) {
+  blocks = blocks.filter(b => b.name !== name);
+  connections = connections.filter(c => c.from !== name && c.to !== name);
+  renderBlocks();
+  renderConnections();
+  renderGraph();
+  renderNarrative();
+  updateConnectionForm();
+}
+function renderBlocks() {
+  const ul = document.getElementById('blocks-list');
+  ul.innerHTML = '';
+  blocks.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>&lt;${b.name}&gt;</span><span class='block-type'>${b.type}</span> <button onclick=\"deleteBlock('${b.name}')\" title=\"Delete\">✕</button>`;
+    ul.appendChild(li);
+  });
+}
+
+// --- Connection Functions ---
+function addConnection(e) {
+  e.preventDefault();
+  const from = document.getElementById('conn-from').value;
+  const type = document.getElementById('conn-type').value;
+  const to = document.getElementById('conn-to').value;
+  if (!from || !type || !to) return;
+  // Enforce grammar
+  const fromType = blocks.find(b => b.name === from)?.type;
+  const toType = blocks.find(b => b.name === to)?.type;
+  if (!LEGOS_GRAMMAR.find(g => g.from === fromType && g.type === type && g.to === toType)) return;
+  connections.push({ from, type, to });
+  renderConnections();
+  renderGraph();
+  renderNarrative();
+}
+function deleteConnection(idx) {
+  connections.splice(idx, 1);
+  renderConnections();
+  renderGraph();
+  renderNarrative();
+}
+function renderConnections() {
+  const ul = document.getElementById('connections-list');
+  ul.innerHTML = '';
+  connections.forEach((c, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>&lt;${c.from}&gt;</span> <span class='relation-type'>[${c.type}]</span> → <span>&lt;${c.to}&gt;</span> <button onclick=\"deleteConnection(${i})\" title=\"Delete\">✕</button>`;
+    ul.appendChild(li);
+  });
+}
+
+// --- Connection Form Filtering ---
+function updateConnectionForm() {
+  const selFrom = document.getElementById('conn-from');
+  const selTo = document.getElementById('conn-to');
+  const selType = document.getElementById('conn-type');
+  selFrom.innerHTML = '';
+  selTo.innerHTML = '';
+  selType.innerHTML = '';
+  blocks.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.name;
+    opt.textContent = b.name + ' ('+b.type+')';
+    selFrom.appendChild(opt.cloneNode(true));
+    selTo.appendChild(opt.cloneNode(true));
+  });
+  // Set up type filtering based on selection
+  selFrom.onchange = selTo.onchange = function() {
+    selType.innerHTML = '';
+    const from = selFrom.value;
+    const to = selTo.value;
+    if (!from || !to) return;
+    const fromType = blocks.find(b => b.name === from)?.type;
+    const toType = blocks.find(b => b.name === to)?.type;
+    LEGOS_GRAMMAR.filter(g => g.from === fromType && g.to === toType).forEach(g => {
+      const opt = document.createElement('option');
+      opt.value = g.type;
+      opt.textContent = g.type;
+      selType.appendChild(opt);
+    });
+  };
+  if (blocks.length >= 2) {
+    selFrom.selectedIndex = 0;
+    selTo.selectedIndex = 1;
+    selFrom.onchange();
+  }
+}
+
+// --- Graph Rendering ---
+function renderGraph() {
+  const svg = document.getElementById('graph-svg');
+  svg.innerHTML = '';
+  // Simple vertical stack
+  const nodeY = {};
+  const spacingY = 60, startY = 50, startX = 120, nodeW = 120, nodeH = 38;
+  blocks.forEach((b, i) => { nodeY[b.name] = startY + i * spacingY; });
+  // Draw edges
+  connections.forEach(conn => {
+    if (!(conn.from in nodeY) || !(conn.to in nodeY)) return;
+    const y1 = nodeY[conn.from] + nodeH/2;
+    const y2 = nodeY[conn.to] + nodeH/2;
+    svg.innerHTML += `<defs><marker id='arrow' markerWidth='8' markerHeight='8' refX='8' refY='4' orient='auto' markerUnits='strokeWidth'><path d='M0,0 L8,4 L0,8' fill='#8a8'/></marker></defs>`;
+    svg.innerHTML += `<line x1='${startX+nodeW}' y1='${y1}' x2='${startX+nodeW+50}' y2='${y1}' stroke='#8a8' stroke-width='2'/>`;
+    svg.innerHTML += `<line x1='${startX+nodeW+50}' y1='${y1}' x2='${startX+nodeW+50}' y2='${y2}' stroke='#8a8' stroke-width='2'/>`;
+    svg.innerHTML += `<line x1='${startX+nodeW+50}' y1='${y2}' x2='${startX+nodeW*2}' y2='${y2}' stroke='#8a8' stroke-width='2' marker-end='url(#arrow)'/>`;
+    svg.innerHTML += `<text x='${startX+nodeW+55}' y='${(y1+y2)/2}' font-size='13' fill='#5b6c8c'>[${conn.type}]</text>`;
+  });
+  // Draw nodes
+  blocks.forEach((b, i) => {
+    const y = nodeY[b.name];
+    svg.innerHTML += `<rect x='${startX}' y='${y}' width='${nodeW}' height='${nodeH}' rx='10' fill='#e8eefc' stroke='#4b6cb7' stroke-width='2'/>
+      <text x='${startX+nodeW/2}' y='${y+nodeH/2+5}' text-anchor='middle' font-size='15' font-weight='bold' fill='#314b6e'>${b.name}</text>`;
+    svg.innerHTML += `<text x='${startX+nodeW/2}' y='${y+nodeH+16}' text-anchor='middle' font-size='12' fill='#4b6cb7'>${b.type}</text>`;
+  });
+}
+
+// --- Narrative Generation ---
+function renderNarrative() {
+  const out = document.getElementById('narrative-output');
+  if (!blocks.length) { out.textContent = 'Add blocks and connections to build a LEGOS story.'; return; }
+  // Traverse from Entity blocks
+  let story = '';
+  blocks.filter(b => b.type === 'Entity').forEach(ent => {
+    // Find goal, location, obstacle, shift
+    const goalConn = connections.find(c => c.from === ent.name && c.type === 'has goal');
+    const locConn = connections.find(c => c.from === ent.name && c.type === 'is at');
+    const obsConn = connections.find(c => c.from === ent.name && c.type === 'encounters');
+    const shiftConn = connections.find(c => c.from === ent.name && c.type === 'executes');
+    story += `<b>${ent.name}</b>`;
+    if (locConn) story += ` is at <b>${locConn.to}</b>`;
+    if (goalConn) story += ` and wants <b>${goalConn.to}</b>`;
+    if (obsConn) story += `. But encounters <b>${obsConn.to}</b>`;
+    if (shiftConn) {
+      story += `. Executes <b>${shiftConn.to}</b>`;
+      // Find what shift resolves/satisfies
+      const shift = shiftConn.to;
+      const resObs = connections.find(c => c.from === shift && c.type === 'resolves');
+      const satGoal = connections.find(c => c.from === shift && c.type === 'satisfies');
+      if (resObs) story += `, resolving <b>${resObs.to}</b>`;
+      if (satGoal) story += `, satisfying <b>${satGoal.to}</b>`;
+    }
+    story += '.\n';
+  });
+  out.innerHTML = story || 'Add more connections to generate the story.';
+}
+
+function generateStory() {
+  renderNarrative();
+}
+
+// --- Presets ---
+function loadPreset(which) {
+  if (which === 'cyclops') {
+    resetState(
+      [
+        {name:'Odysseus', type:'Entity'},
+        {name:'Cave', type:'Location'},
+        {name:'Escape', type:'Goal'},
+        {name:'Polyphemus', type:'Obstacle'},
+        {name:'Blind Cyclops Trick', type:'Shift'},
+      ],
+      [
+        {from:'Odysseus', type:'is at', to:'Cave'},
+        {from:'Odysseus', type:'has goal', to:'Escape'},
+        {from:'Odysseus', type:'encounters', to:'Polyphemus'},
+        {from:'Odysseus', type:'executes', to:'Blind Cyclops Trick'},
+        {from:'Blind Cyclops Trick', type:'resolves', to:'Polyphemus'},
+        {from:'Blind Cyclops Trick', type:'satisfies', to:'Escape'},
+      ]
+    );
+  } else if (which === 'odyssey') {
+    resetState(
+      [
+        {name:'Odysseus', type:'Entity'},
+        {name:'Return to Ithaca', type:'Goal'},
+        {name:'Circe', type:'Obstacle'},
+        {name:'Resist Spell', type:'Shift'},
+        {name:'Pig Transformation', type:'Obstacle'},
+        {name:'Sirens', type:'Obstacle'},
+        {name:'Rope + Wax Strategy', type:'Shift'},
+        {name:'Siren Song', type:'Obstacle'},
+      ],
+      [
+        {from:'Odysseus', type:'has goal', to:'Return to Ithaca'},
+        {from:'Odysseus', type:'encounters', to:'Circe'},
+        {from:'Odysseus', type:'executes', to:'Resist Spell'},
+        {from:'Resist Spell', type:'resolves', to:'Pig Transformation'},
+        {from:'Odysseus', type:'encounters', to:'Sirens'},
+        {from:'Odysseus', type:'executes', to:'Rope + Wax Strategy'},
+        {from:'Rope + Wax Strategy', type:'resolves', to:'Siren Song'},
+      ]
+    );
+  } else if (which === 'boss') {
+    resetState(
+      [
+        {name:'Hero', type:'Entity'},
+        {name:'Defeat Minotaur', type:'Goal'},
+        {name:'Labyrinth', type:'Obstacle'},
+        {name:'Crete', type:'Location'},
+        {name:'Find Minotaur', type:'Goal'},
+        {name:'Darkness', type:'Obstacle'},
+        {name:'Use Thread', type:'Shift'},
+      ],
+      [
+        {from:'Hero', type:'has goal', to:'Defeat Minotaur'},
+        {from:'Hero', type:'encounters', to:'Labyrinth'},
+        {from:'Labyrinth', type:'is at', to:'Crete'},
+        {from:'Labyrinth', type:'has goal', to:'Find Minotaur'},
+        {from:'Labyrinth', type:'encounters', to:'Darkness'},
+        {from:'Labyrinth', type:'executes', to:'Use Thread'},
+      ]
+    );
+  } else {
+    resetState([],[]);
+  }
+}
+// --- Init ---
+loadPreset('cyclops');
+</script>
+</body>
+</html>

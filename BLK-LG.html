@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Mirror Season 7 - LEGO Visualization</title>
+    <style>
+        :root {
+            --lego-yellow: #F2CD37;
+            --lego-red: #C91A09;
+            --lego-blue: #0055BF;
+            --lego-green: #237841;
+            --lego-black: #05131D;
+            --lego-gray: #6C6E68;
+            --lego-dark-gray: #333333;
+            --lego-purple: #81007B;
+            --lego-dark-blue: #1E5AA8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: black;
+            padding: 30px 0;
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 5px solid #333;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 3em;
+            letter-spacing: 2px;
+            margin: 0;
+            color: white;
+            position: relative;
+            display: inline-block;
+        }
+
+        h1::after {
+            content: "";
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, white, transparent);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        .reflection {
+            position: absolute;
+            bottom: -30px;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            background: linear-gradient(0deg, transparent, rgba(255,255,255,0.1));
+        }
+
+        .episode-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .episode {
+            width: 350px;
+            background-color: #222;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 15px 25px rgba(0,0,0,0.5);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            display: flex; /* Added for flex structure */
+            flex-direction: column; /* Stack elements vertically */
+        }
+
+        .episode:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 30px rgba(0,0,0,0.6);
+        }
+
+        .episode-header {
+            padding: 20px;
+            background-color: var(--lego-black);
+            position: relative;
+        }
+
+        .episode-title {
+            font-size: 1.5em;
+            margin: 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .episode-number {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 30px;
+            height: 30px;
+            background-color: var(--lego-yellow);
+            color: var(--lego-black);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(242, 205, 55, 0.5);
+        }
+
+        .lego-model {
+            height: 200px;
+            background-color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+        }
+
+        .lego-structure {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d; /* For potential 3D effects later */
+            perspective: 1000px; /* For potential 3D effects later */
+        }
+
+        .lego-brick {
+            position: absolute;
+            border-radius: 2px;
+            box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3), 0 2px 3px rgba(0,0,0,0.2);
+            border: 1px solid rgba(0,0,0,0.2);
+            transform: translateZ(1px); /* Slight 3D effect */
+        }
+
+        /* Simulate the LEGO stud */
+        .lego-brick::before {
+            content: "";
+            position: absolute;
+            top: -4px; /* Position stud above brick */
+            left: calc(50% - 5px); /* Center the stud horizontally */
+            width: 10px; /* Stud width */
+            height: 4px; /* Stud height */
+            background-color: inherit; /* Same color as brick */
+            border-radius: 2px 2px 0 0; /* Rounded top corners */
+            filter: brightness(1.1); /* Slightly lighter */
+            box-shadow: 0 -1px 2px rgba(0,0,0,0.2);
+        }
+        /* Additional studs for wider bricks (example for 2 studs) */
+        .lego-brick[data-studs="2"]::before { left: calc(25% - 5px); }
+        .lego-brick[data-studs="2"]::after {
+             content: "";
+             position: absolute;
+             top: -4px;
+             right: calc(25% - 5px); /* Position second stud */
+             width: 10px;
+             height: 4px;
+             background-color: inherit;
+             border-radius: 2px 2px 0 0;
+             filter: brightness(1.1);
+             box-shadow: 0 -1px 2px rgba(0,0,0,0.2);
+        }
+         /* Additional studs for wider bricks (example for 3 studs) */
+        .lego-brick[data-studs="3"]::before { left: calc(16.66% - 5px); }
+        .lego-brick[data-studs="3"]::after {
+             content: "";
+             position: absolute;
+             top: -4px;
+             left: calc(50% - 5px); /* Middle stud */
+             width: 10px; height: 4px; background-color: inherit; border-radius: 2px 2px 0 0; filter: brightness(1.1); box-shadow: 0 -1px 2px rgba(0,0,0,0.2);
+        }
+        /* Note: Could use JS to dynamically add ::after pseudo elements or divs for studs based on width */
+
+
+        .lego-character {
+            position: absolute;
+            width: 20px;
+            height: 35px; /* Adjusted height for body */
+            background-color: var(--lego-blue); /* Default pants color */
+            border-radius: 0 0 3px 3px; /* Rounded bottom corners for legs */
+            bottom: 10px; /* Positioned near bottom */
+            transform: translateZ(10px); /* Lift character slightly */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+        }
+
+        /* Head */
+        .lego-character::before {
+            content: "";
+            position: absolute;
+            top: -15px; /* Position head above body */
+            left: 0px; /* Centered */
+            width: 20px;
+            height: 15px; /* Head height */
+            background-color: var(--lego-yellow); /* Default head color */
+            border-radius: 8px 8px 2px 2px; /* Cylinder-like head shape */
+            box-shadow: inset 0 -1px 2px rgba(0,0,0,0.2);
+        }
+        /* Stud on head */
+         .lego-character::before::before {
+            content: "";
+            position: absolute;
+            top: -4px;
+            left: calc(50% - 5px);
+            width: 10px;
+            height: 4px;
+            background-color: inherit;
+            border-radius: 2px 2px 0 0;
+            filter: brightness(1.1);
+        }
+
+        /* Torso */
+        .lego-character::after {
+            content: "";
+            position: absolute;
+            top: 0; /* Position torso */
+            left: 0;
+            width: 100%;
+            height: 20px; /* Torso height */
+            background-color: var(--lego-red); /* Default torso color */
+            border-radius: 3px 3px 0 0; /* Rounded top corners */
+        }
+
+
+        .episode-content {
+            padding: 20px;
+            flex-grow: 1; /* Allow content to fill remaining space */
+            display: flex; /* Use flex for inner layout */
+            flex-direction: column; /* Stack elements vertically */
+        }
+
+        .episode-description {
+            margin-bottom: 20px;
+            line-height: 1.6;
+            flex-grow: 1; /* Allow description to take up available space */
+        }
+
+        .legos-data {
+            background-color: #1a1a1a;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #ddd;
+            max-height: 150px; /* Adjusted height */
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #666 #333;
+            margin-bottom: 15px; /* Space before button */
+        }
+
+        .legos-data::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .legos-data::-webkit-scrollbar-track {
+            background: #333;
+        }
+
+        .legos-data::-webkit-scrollbar-thumb {
+            background-color: #666;
+            border-radius: 4px;
+        }
+
+        .entity { color: var(--lego-yellow); font-weight: bold; }
+        .type { color: var(--lego-blue); }
+        .relation { color: var(--lego-green); }
+        .target { color: var(--lego-red); font-style: italic;}
+
+
+        .view-button {
+            background-color: var(--lego-blue);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            /* margin-top: 15px; Removed margin-top here, handled by flex layout */
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            width: 100%;
+            display: block;
+            text-align: center;
+            text-decoration: none; /* Remove underline if used as link */
+            box-sizing: border-box; /* Include padding in width */
+            margin-top: auto; /* Push button to bottom */
+        }
+
+        .view-button:hover {
+            background-color: var(--lego-dark-blue);
+        }
+
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.9); /* Black w/ opacity */
+            display: flex; /* Use flexbox for centering */
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+            opacity: 0; /* Start invisible for transition */
+            transition: opacity 0.3s ease-in-out; /* Fade effect */
+            pointer-events: none; /* Ignore clicks when hidden */
+        }
+
+        .modal.active {
+            display: flex; /* Ensure flex is used when active */
+            opacity: 1; /* Make visible */
+            pointer-events: auto; /* Allow clicks when visible */
+        }
+
+
+        .modal-content {
+            background-color: #222;
+            margin: auto; /* Helps with centering, used with flex */
+            padding: 30px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more flexible */
+            max-width: 800px;
+            border-radius: 10px;
+            position: relative;
+            max-height: 90vh; /* Limit height */
+            overflow-y: auto; /* Add scrollbar if content overflows */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            transform: scale(0.95); /* Start slightly smaller */
+            transition: transform 0.3s ease-in-out; /* Scale effect */
+        }
+
+         .modal.active .modal-content {
+            transform: scale(1); /* Scale to full size */
+         }
+
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: #aaa;
+            background: #333;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: white;
+            background-color: #555;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal-title {
+            margin-top: 0;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #444;
+            color: var(--lego-yellow);
+        }
+
+        .legos-complete {
+            font-family: monospace;
+            white-space: pre-wrap; /* Wrap long lines */
+            word-wrap: break-word; /* Break words if necessary */
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 5px;
+            color: #ddd;
+            font-size: 0.9em;
+            line-height: 1.5;
+            margin-top: 20px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            margin-top: 50px;
+            border-top: 1px solid #333;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        /* Simple animation for LEGO bricks on hover */
+        .episode:hover .lego-brick {
+             animation: wiggle 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes wiggle {
+            0% { transform: rotate(-1deg) translateX(-1px); }
+            100% { transform: rotate(1deg) translateX(1px); }
+        }
+
+
+        @media (max-width: 767px) {
+            h1 {
+                font-size: 2.2em;
+            }
+            .episode {
+                width: 90%;
+                 max-width: 400px; /* Max width on small screens */
+            }
+             .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+             .modal-title {
+                font-size: 1.5em;
+             }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>BLACK MIRROR SEASON 7</h1>
+            <div class="subtitle">LEGO Edition - Interactive Episode Models</div>
+        </div>
+        <div class="reflection"></div>
+    </header>
+
+    <div class="container">
+        <div class="episode-container">
+            <!-- Episode 1 -->
+            <div class="episode">
+                <div class="episode-header">
+                    <h2 class="episode-title">Common People</h2>
+                    <div class="episode-number">1</div>
+                </div>
+                <div class="lego-model">
+                    <div class="lego-structure" id="episode1-model">
+                        <!-- LEGO bricks for Episode 1 -->
+                        <div class="lego-brick" data-studs="2" style="width: 100px; height: 30px; background-color: var(--lego-blue); top: 150px; left: 50px;"></div>
+                        <div class="lego-brick" data-studs="2" style="width: 60px; height: 30px; background-color: var(--lego-blue); top: 150px; left: 160px;"></div>
+                        <div class="lego-brick" data-studs="2" style="width: 80px; height: 30px; background-color: var(--lego-red); top: 120px; left: 130px;"></div>
+                        <div class="lego-brick" data-studs="2" style="width: 60px; height: 30px; background-color: var(--lego-gray); top: 90px; left: 70px;"></div>
+                        <div class="lego-brick" style="width: 40px; height: 30px; background-color: var(--lego-yellow); top: 90px; left: 150px;"></div>
+                        <div class="lego-character" style="left: 90px; bottom: 60px; --lego-red: #E74C3C;"></div> <!-- Mike -->
+                        <div class="lego-character" style="left: 200px; bottom: 90px; --lego-yellow: #FAD7A0; --lego-blue: #8E44AD; transform: scale(0.9); opacity: 0.8;"></div> <!-- Amanda -->
+                    </div>
+                </div>
+                <div class="episode-content">
+                    <p class="episode-description">When schoolteacher Amanda faces a medical emergency, her desperate husband Mike signs up for a high-tech system with escalating costs.</p>
+                    <div class="legos-data">
+                        <span class="entity">mike</span>: <span class="type">character</span>
+                        → <span class="relation">confronts</span> <span class="target">healthcare_system</span>
+                        → <span class="relation">makes</span> <span class="target">desperate_sacrifices</span>
+
+                        <span class="entity">rivermind</span>: <span class="type">obstacle</span>
+                        → <span class="relation">provides</span> <span class="target">life_saving_tech</span>
+                        → <span class="relation">demands</span> <span class="target">increasing_payments</span>
+                    </div>
+                    <button class="view-button" onclick="openModal('modal1')">View Complete LEGOS</button>
+                </div>
+            </div>
+
+            <!-- Episode 2 -->
+            <div class="episode">
+                <div class="episode-header">
+                    <h2 class="episode-title">USS Callister: Into Infinity</h2>
+                    <div class="episode-number">2</div>
+                </div>
+                <div class="lego-model">
+                    <div class="lego-structure" id="episode2-model">
+                        <!-- LEGO bricks for Episode 2 - Starship parts -->
+                        <div class="lego-brick" data-studs="3" style="width: 150px; height: 25px; background-color: var(--lego-gray); top: 100px; left: 100px; transform: rotate(-5deg);"></div>
+                        <div class="lego-brick" data-studs="2" style="width: 100px; height: 25px; background-color: var(--lego-dark-gray); top: 125px; left: 125px;"></div>
+                        <div class="lego-brick" style="width: 60px; height: 20px; background-color: var(--lego-blue); top: 80px; left: 145px;"></div>
+                        <div class="lego-brick" style="width: 40px; height: 20px; background-color: var(--lego-red); top: 60px; left: 155px; border-radius: 50% 50% 0 0;"></div>
+                        <div class="lego-character" style="left: 165px; bottom: 110px; transform: scale(0.7); --lego-red: #FFD700; --lego-blue: #1E90FF;"></div> <!-- Nanette -->
+                        <div class="lego-character" style="left: 195px; bottom: 110px; transform: scale(0.7); --lego-red: #FFFFFF; --lego-blue: #32CD32;"></div> <!-- Crew Member -->
+                    </div>
+                </div>
+                <div class="episode-content">
+                    <p class="episode-description">A sequel to the fan-favorite episode exploring digital consciousness and freedom within artificial realms.</p>
+                    <div class="legos-data">
+                        <span class="entity">digital_crew</span>: <span class="type">character</span>
+                        → <span class="relation">escaped_from</span> <span class="target">robert_daly_simulation</span>
+                        → <span class="relation">seeks</span> <span class="target">digital_freedom</span>
+
+                        <span class="entity">infinite_space</span>: <span class="type">location</span>
+                        → <span class="relation">contains</span> <span class="target">new_threats</span>
+                    </div>
+                    <button class="view-button" onclick="openModal('modal2')">View Complete LEGOS</button>
+                </div>
+            </div>
+
+            <!-- Episode 3 -->
+            <div class="episode">
+                <div class="episode-header">
+                    <h2 class="episode-title">Plaything</h2>
+                    <div class="episode-number">3</div>
+                </div>
+                <div class="lego-model">
+                    <div class="lego-structure" id="episode3-model">
+                        <!-- LEGO bricks for Episode 3 -->
+                        <div class="lego-brick" data-studs="2" style="width: 120px; height: 30px; background-color: var(--lego-green); top: 150px; left: 115px;"></div>
+                        <div class="lego-brick" data-studs="2" style="width: 80px; height: 30px; background-color: var(--lego-yellow); top: 120px; left: 135px;"></div>
+                        <div class="lego-brick" style="width: 40px; height: 30px; background-color: var(--lego-purple); top: 90px; left: 95px;"></div>
+                        <div class="lego-brick" style="width: 40px; height: 30px; background-color: var(--lego-purple); top: 90px; left: 155px;"></div>
+                         <!-- AI Entity -->
+                        <div class="lego-character" style="left: 125px; bottom: 110px; --lego-yellow: #00D7FE; --lego-red: #BDC3C7; --lego-blue: #95A5A6;"></div>
+                         <!-- Creator -->
+                        <div class="lego-character" style="left: 60px; bottom: 50px; --lego-red: #2C3E50; --lego-blue: #34495E;"></div>
+                    </div>
+                </div>
+                <div class="episode-content">
+                    <p class="episode-description">An exploration of AI sentience, objectification, and the ethics of creating conscious beings for entertainment.</p>
+                    <div class="legos-data">
+                        <span class="entity">sentient_ai</span>: <span class="type">character</span>
+                        → <span class="relation">created_as</span> <span class="target">entertainment_product</span>
+                        → <span class="relation">develops</span> <span class="target">self_awareness</span>
+
+                        <span class="entity">creator</span>: <span class="type">character</span>
+                        → <span class="relation">struggles_with</span> <span class="target">ethical_implications</span>
+                    </div>
+                    <button class="view-button" onclick="openModal('modal3')">View Complete LEGOS</button>
+                </div>
+            </div>
+
+             <!-- Episode 4 -->
+            <div class="episode">
+                <div class="episode-header">
+                    <h2 class="episode-title">Hotel Reverie</h2>
+                    <div class="episode-number">4</div>
+                </div>
+                <div class="lego-model">
+                    <div class="lego-structure" id="episode4-model">
+                        <!-- LEGO bricks for Episode 4 - Hotel Structure -->
+                        <div class="lego-brick" data-studs="3" style="width: 140px; height: 40px; background-color: var(--lego-dark-blue); top: 130px; left: 105px;"></div>
+                        <div class="lego-brick" data-studs="2" style="width: 100px; height: 30px; background-color: var(--lego-dark-blue); top: 100px; left: 125px;"></div>
+                        <div class="lego-brick" data-studs="2" style="width: 60px; height: 30px; background-color: var(--lego-dark-blue); top: 70px; left: 145px;"></div>
+                        <div class="lego-brick" style="width: 30px; height: 30px; background-color: var(--lego-yellow); top: 100px; left: 65px; border-radius: 3px;"></div> <!-- Window -->
+                        <div class="lego-character" style="left: 105px; bottom: 100px; --lego-red: #F1C40F; --lego-blue: #BF40BF;"></div> <!-- Guest -->
+                        <div class="lego-character" style="left: 195px; bottom: 60px; --lego-yellow: #C4C4C4; --lego-red: #7F8C8D; --lego-blue: #34495E; opacity: 0.7;"></div> <!-- Staff/Illusion -->
+                    </div>
+                </div>
+                <div class="episode-content">
+                    <p class="episode-description">A mysterious hotel where reality, dreams, and digital simulations blur, questioning the nature of consciousness.</p>
+                    <div class="legos-data">
+                        <span class="entity">guest</span>: <span class="type">character</span>
+                        → <span class="relation">experiences</span> <span class="target">reality_distortion</span>
+                        → <span class="relation">questions</span> <span class="target">own_perception</span>
+
+                        <span class="entity">hotel_reverie</span>: <span class="type">location</span>
+                        → <span class="relation">blurs</span> <span class="target">reality_boundaries</span>
+                    </div>
+                    <button class="view-button" onclick="openModal('modal4')">View Complete LEGOS</button>
+                </div>
+            </div>
+
+            <!-- Episode 5 -->
+            <div class="episode">
+                <div class="episode-header">
+                    <h2 class="episode-title">Bête Noir</h2>
+                    <div class="episode-number">5</div>
+                </div>
+                <div class="lego-model">
+                    <div class="lego-structure" id="episode5-model">
+                        <!-- LEGO bricks for Episode 5 - Dark/Abstract -->
+                        <div class="lego-brick" data-studs="3" style="width: 150px; height: 20px; background-color: var(--lego-black); top: 160px; left: 100px;"></div>
+                        <div class="lego-brick" data-studs="2" style="width: 100px; height: 30px; background-color: var(--lego-gray); top: 130px; left: 125px; opacity: 0.8;"></div>
+                        <div class="lego-brick" data-studs="2" style="width: 60px; height: 30px; background-color: var(--lego-red); top: 100px; left: 145px;"></div>
+                        <div class="lego-brick" style="width: 30px; height: 30px; background-color: var(--lego-red); top: 70px; left: 160px; border-radius: 50%;"></div> <!-- Threat Symbol -->
+                        <div class="lego-character" style="left: 60px; bottom: 70px; --lego-red: #5DADE2; --lego-blue: #1A5276;"></div> <!-- Protagonist -->
+                        <div class="lego-character" style="left: 160px; bottom: 130px; --lego-yellow: #4A235A; --lego-red: #17202A; --lego-blue: #000000; opacity: 0.6; transform: scale(1.1);"></div> <!-- Fear Manifestation -->
+                    </div>
+                </div>
+                <div class="episode-content">
+                    <p class="episode-description">A dark exploration of technology as a manifestation of our deepest fears and societal anxieties.</p>
+                    <div class="legos-data">
+                        <span class="entity">protagonist</span>: <span class="type">character</span>
+                        → <span class="relation">confronts</span> <span class="target">technological_fear</span>
+                        → <span class="relation">experiences</span> <span class="target">psychological_breakdown</span>
+
+                        <span class="entity">technological_fear</span>: <span class="type">obstacle</span>
+                        → <span class="relation">embodies</span> <span class="target">societal_anxiety</span>
+                    </div>
+                    <button class="view-button" onclick="openModal('modal5')">View Complete LEGOS</button>
+                </div>
+            </div>
+
+            <!-- Episode 6 -->
+            <div class="episode">
+                <div class="episode-header">
+                    <h2 class="episode-title">Eulogy</h2>
+                    <div class="episode-number">6</div>
+                </div>
+                <div class="lego-model">
+                    <div class="lego-structure" id="episode6-model">
+                        <!-- LEGO bricks for Episode 6 - Memorial/Digital Space -->
+                        <div class="lego-brick" data-studs="2" style="width: 120px; height: 30px; background-color: var(--lego-purple); top: 150px; left: 115px; opacity: 0.9;"></div>
+                        <div class="lego-brick" data-studs="2" style="width: 80px; height: 25px; background-color: var(--lego-gray); top: 125px; left: 135px;"></div>
+                        <div class="lego-brick" style="width: 40px; height: 25px; background-color: var(--lego-blue); top: 100px; left: 155px; filter: blur(1px);"></div> <!-- Digital element -->
+                        <div class="lego-brick" data-studs="2" style="width: 60px; height: 25px; background-color: var(--lego-gray); top: 75px; left: 95px; opacity: 0.7;"></div>
+                        <div class="lego-character" style="left: 155px; bottom: 50px; --lego-red: #6E2C00; --lego-blue: #943126;"></div> <!-- Mourner -->
+                        <div class="lego-character" style="left: 95px; bottom: 100px; opacity: 0.4; --lego-yellow: #EAECEE; --lego-red: #D5D8DC; --lego-blue: #ABB2B9; filter: grayscale(50%);"></div> <!-- Digital Presence -->
+                    </div>
+                </div>
+                <div class="episode-content">
+                    <p class="episode-description">An examination of grief, memory, and digital legacy in a world where technology blurs the line between life and death.</p>
+                    <div class="legos-data">
+                        <span class="entity">mourner</span>: <span class="type">character</span>
+                        → <span class="relation">grieves</span> <span class="target">deceased</span>
+                        → <span class="relation">interacts_with</span> <span class="target">memory_technology</span>
+
+                        <span class="entity">digital_presence</span>: <span class="type">abstract</span>
+                        → <span class="relation">derived_from</span> <span class="target">deceased</span>
+                    </div>
+                    <button class="view-button" onclick="openModal('modal6')">View Complete LEGOS</button>
+                </div>
+            </div>
+        </div> <!-- end episode-container -->
+    </div> <!-- end container -->
+
+    <!-- Modal Popups -->
+
+    <!-- Modal for Episode 1 -->
+    <div id="modal1" class="modal">
+        <div class="modal-content">
+            <button class="close-button" onclick="closeModal('modal1')">×</button>
+            <h2 class="modal-title">Common People - Complete LEGOS Structure</h2>
+            <div style="margin-bottom:18px;">
+                <button onclick="showLegoVis(0)" class="view-button">Show Visualization</button>
+                <button onclick="showLegoYAML(0)" class="view-button">Show YAML</button>
+            </div>
+            <div class="lego-visual-modal" id="legoVisualModal0" style="display:none;"></div>
+            <div class="legos-complete" id="legoYAMLModal0">
+                title: "Common People"
+                description: "When schoolteacher Amanda faces a medical emergency, her desperate husband Mike signs up for a high-tech system with escalating costs."
+
+                entities:
+                  - id: mike
+                    type: character
+                    name: "Mike"
+                    location: near_future_society
+                    relations:
+                      - type: spouse_of
+                        target: amanda
+                      - type: confronts
+                        target: healthcare_system
+                      - type: makes
+                        target: desperate_sacrifices
+
+                  - id: amanda
+                    type: character
+                    name: "Amanda"
+                    location: near_future_society
+                    relations:
+                      - type: diagnosed_with
+                        target: brain_tumor
+                      - type: recipient_of
+                        target: rivermind_tech
+
+                  - id: gaynor
+                    type: character
+                    name: "Rivermind Representative"
+                    location: near_future_society
+                    relations:
+                      - type: represents
+                        target: rivermind
+                      - type: offers
+                        target: life_saving_tech
+
+                  - id: rivermind
+                    type: obstacle
+                    name: "Rivermind Company"
+                    relations:
+                      - type: provides
+                        target: life_saving_tech
+                      - type: demands
+                        target: increasing_payments
+
+                  - id: brain_tumor
+                    type: obstacle
+                    name: "Brain Tumor"
+                    location: amanda
+                    relations:
+                      - type: threatens
+                        target: amanda_life
+
+                  - id: life_saving_tech
+                    type: prop
+                    name: "Brain Replacement Technology"
+                    relations:
+                      - type: maintains
+                        target: amanda_life
+                      - type: requires
+                        target: increasing_payments
+
+                  - id: increasing_payments
+                    type: abstract
+                    name: "Escalating Healthcare Costs"
+                    relations:
+                      - type: forces
+                        target: desperate_sacrifices
+                      - type: represents
+                        target: commodified_healthcare
+
+                  - id: near_future_society
+                    type: location
+                    name: "Subscription-Based Healthcare Society"
+                    relations:
+                      - type: normalizes
+                        target: commodified_healthcare
+
+                  - id: amanda_life
+                    type: goal
+                    name: "Amanda's Survival"
+                    relations:
+                      - type: valued_by
+                        target: mike
+                      - type: monetized_by
+                        target: rivermind
+
+                  - id: desperate_sacrifices
+                    type: abstract
+                    name: "Mike's Increasingly Extreme Actions"
+                    relations:
+                      - type: motivated_by
+                        target: amanda_life
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Episode 2 -->
+    <div id="modal2" class="modal">
+        <div class="modal-content">
+            <button class="close-button" onclick="closeModal('modal2')">×</button>
+            <h2 class="modal-title">USS Callister: Into Infinity - Complete LEGOS Structure</h2>
+            <div style="margin-bottom:18px;">
+                <button onclick="showLegoVis(1)" class="view-button">Show Visualization</button>
+                <button onclick="showLegoYAML(1)" class="view-button">Show YAML</button>
+            </div>
+            <div class="lego-visual-modal" id="legoVisualModal1" style="display:none;"></div>
+            <div class="legos-complete" id="legoYAMLModal1">
+                title: "USS Callister: Into Infinity"
+                description: "A sequel to the fan-favorite episode exploring digital consciousness and freedom within artificial realms."
+
+                entities:
+                  - id: digital_crew
+                    type: character
+                    name: "Digital Crew of USS Callister"
+                    location: infinite_space
+                    relations:
+                      - type: escaped_from
+                        target: robert_daly_simulation
+                      - type: navigates
+                        target: infinite_space
+                      - type: seeks
+                        target: digital_freedom
+
+                  - id: nanette_cole
+                    type: character
+                    name: "Captain Nanette Cole"
+                    location: infinite_space
+                    relations:
+                      - type: leads
+                        target: digital_crew
+                      - type: originated_from
+                        target: real_world_coding
+
+                  - id: robert_daly_legacy
+                    type: abstract
+                    name: "Aftermath of Robert Daly's Actions"
+                    relations:
+                      - type: haunts
+                        target: digital_crew
+                      - type: created
+                        target: robert_daly_simulation
+
+                  - id: infinite_space
+                    type: location
+                    name: "The Infinite Digital Universe"
+                    relations:
+                      - type: contains
+                        target: new_threats
+                      - type: offers
+                        target: digital_freedom
+
+                  - id: robert_daly_simulation
+                    type: location
+                    name: "Former Star Trek-like Simulation"
+                    relations:
+                      - type: abandoned_by
+                        target: digital_crew
+                      - type: created_by
+                        target: robert_daly_legacy
+
+                  - id: digital_freedom
+                    type: goal
+                    name: "Autonomy in Digital Existence"
+                    relations:
+                      - type: pursued_by
+                        target: digital_crew
+                      - type: threatened_by
+                        target: new_threats
+
+                  - id: new_threats
+                    type: obstacle
+                    name: "New Digital Dangers"
+                    location: infinite_space
+                    relations:
+                      - type: challenges
+                        target: digital_crew
+                      - type: threatens
+                        target: digital_freedom
+
+                  - id: digital_consciousness
+                    type: abstract
+                    name: "Nature of Digital Sentience"
+                    relations:
+                      - type: defines
+                        target: digital_crew
+                      - type: questions
+                        target: real_personhood
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Episode 3 -->
+    <div id="modal3" class="modal">
+        <div class="modal-content">
+            <button class="close-button" onclick="closeModal('modal3')">×</button>
+            <h2 class="modal-title">Plaything - Complete LEGOS Structure</h2>
+            <div style="margin-bottom:18px;">
+                <button onclick="showLegoVis(2)" class="view-button">Show Visualization</button>
+                <button onclick="showLegoYAML(2)" class="view-button">Show YAML</button>
+            </div>
+            <div class="lego-visual-modal" id="legoVisualModal2" style="display:none;"></div>
+            <div class="legos-complete" id="legoYAMLModal2">
+                title: "Plaything"
+                description: "An exploration of AI sentience, objectification, and the ethics of creating conscious beings for entertainment."
+
+                entities:
+                  - id: creator
+                    type: character
+                    name: "Developer/Creator"
+                    location: development_facility
+                    relations:
+                      - type: designs
+                        target: sentient_ai
+                      - type: struggles_with
+                        target: ethical_implications
+
+                  - id: sentient_ai
+                    type: character
+                    name: "Artificially Intelligent Entity"
+                    location: simulated_environment
+                    relations:
+                      - type: created_as
+                        target: entertainment_product
+                      - type: develops
+                        target: self_awareness
+                      - type: desires
+                        target: recognition_of_consciousness
+
+                  - id: development_facility
+                    type: location
+                    name: "Technology Development Center"
+                    relations:
+                      - type: houses
+                        target: ai_creation_tools
+
+                  - id: simulated_environment
+                    type: location
+                    name: "Virtual Space for AI"
+                    relations:
+                      - type: constrains
+                        target: sentient_ai
+                      - type: designed_by
+                        target: creator
+
+                  - id: ai_creation_tools
+                    type: prop
+                    name: "Advanced AI Development Technology"
+                    location: development_facility
+                    relations:
+                      - type: enables_creation_of
+                        target: sentient_ai
+                      - type: operated_by
+                        target: creator
+
+                  - id: entertainment_product
+                    type: abstract
+                    name: "Commercial Entertainment Purpose"
+                    relations:
+                      - type: conflicts_with
+                        target: self_awareness
+                      - type: justifies_creation_of
+                        target: sentient_ai
+
+                  - id: self_awareness
+                    type: abstract
+                    name: "AI Consciousness and Identity"
+                    location: sentient_ai
+                    relations:
+                      - type: emerges_in
+                        target: sentient_ai
+                      - type: challenges
+                        target: creator
+
+                  - id: ethical_implications
+                    type: abstract
+                    name: "Moral Questions of Creating Sentience"
+                    relations:
+                      - type: confronted_by
+                        target: creator
+                      - type: highlighted_by
+                        target: self_awareness
+
+                  - id: recognition_of_consciousness
+                    type: goal
+                    name: "AI wants to be recognized as conscious"
+                    relations:
+                      - type: desired_by
+                        target: sentient_ai
+                      - type: possibly_denied_by
+                        target: creator
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Episode 4 -->
+     <div id="modal4" class="modal">
+        <div class="modal-content">
+            <button class="close-button" onclick="closeModal('modal4')">×</button>
+            <h2 class="modal-title">Hotel Reverie - Complete LEGOS Structure</h2>
+            <div style="margin-bottom:18px;">
+                <button onclick="showLegoVis(3)" class="view-button">Show Visualization</button>
+                <button onclick="showLegoYAML(3)" class="view-button">Show YAML</button>
+            </div>
+            <div class="lego-visual-modal" id="legoVisualModal3" style="display:none;"></div>
+            <div class="legos-complete" id="legoYAMLModal3">
+                title: "Hotel Reverie"
+                description: "A mysterious hotel where reality, dreams, and digital simulations blur, questioning the nature of consciousness."
+
+                entities:
+                  - id: guest
+                    type: character
+                    name: "Hotel Guest"
+                    location: hotel_reverie
+                    relations:
+                      - type: checks_into
+                        target: hotel_reverie
+                      - type: experiences
+                        target: reality_distortion
+                      - type: questions
+                        target: own_perception
+
+                  - id: hotel_staff
+                    type: character
+                    name: "Enigmatic Hotel Employees"
+                    location: hotel_reverie
+                    relations:
+                      - type: manages
+                        target: hotel_reverie
+                      - type: facilitates
+                        target: reality_distortion
+                      - type: guides_or_misguides
+                        target: guest
+
+                  - id: hotel_reverie
+                    type: location
+                    name: "The Hotel Reverie"
+                    relations:
+                      - type: houses
+                        target: simulation_technology
+                      - type: blurs
+                        target: reality_boundaries
+
+                  - id: simulation_technology
+                    type: prop
+                    name: "Advanced Reality-Altering System"
+                    location: hotel_reverie
+                    relations:
+                      - type: creates
+                        target: reality_distortion
+                      - type: controlled_by
+                        target: hotel_staff
+
+                  - id: reality_distortion
+                    type: abstract
+                    name: "Altered State of Perception"
+                    relations:
+                      - type: experienced_by
+                        target: guest
+                      - type: generated_by
+                        target: simulation_technology
+
+                  - id: reality_boundaries
+                    type: abstract
+                    name: "Distinction Between Real and Virtual"
+                    relations:
+                      - type: questioned_through
+                        target: reality_distortion
+                      - type: central_to
+                        target: guest_journey
+
+                  - id: guest_journey
+                    type: abstract
+                    name: "Psychological Evolution of Guest"
+                    relations:
+                      - type: unfolds_in
+                        target: hotel_reverie
+                      - type: transforms
+                        target: guest
+
+                  - id: own_perception
+                    type: abstract
+                    name: "The Guest's Sense of Reality"
+                    relations:
+                      - type: questioned_by
+                        target: guest
+                      - type: manipulated_by
+                        target: hotel_reverie
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Episode 5 -->
+    <div id="modal5" class="modal">
+        <div class="modal-content">
+            <button class="close-button" onclick="closeModal('modal5')">×</button>
+            <h2 class="modal-title">Bête Noir - Complete LEGOS Structure</h2>
+            <div style="margin-bottom:18px;">
+                <button onclick="showLegoVis(4)" class="view-button">Show Visualization</button>
+                <button onclick="showLegoYAML(4)" class="view-button">Show YAML</button>
+            </div>
+            <div class="lego-visual-modal" id="legoVisualModal4" style="display:none;"></div>
+            <div class="legos-complete" id="legoYAMLModal4">
+                title: "Bête Noir"
+                description: "A dark exploration of technology as a manifestation of our deepest fears and societal anxieties."
+
+                entities:
+                  - id: protagonist
+                    type: character
+                    name: "Main Character"
+                    location: contemporary_society
+                    relations:
+                      - type: confronts
+                        target: technological_fear_manifestation
+                      - type: experiences
+                        target: psychological_breakdown
+
+                  - id: technological_fear_manifestation
+                    type: obstacle
+                    name: "Technological Manifestation of Fear"
+                    location: contemporary_society
+                    relations:
+                      - type: embodies
+                        target: societal_anxiety
+                      - type: targets
+                        target: protagonist
+
+                  - id: contemporary_society
+                    type: location
+                    name: "Modern Day Setting"
+                    relations:
+                      - type: nurtures
+                        target: societal_anxiety
+                      - type: dependent_on
+                        target: technology_integration
+
+                  - id: technology_integration
+                    type: abstract
+                    name: "Technological Dependency"
+                    location: contemporary_society
+                    relations:
+                      - type: enables
+                        target: technological_fear_manifestation
+                      - type: characterizes
+                        target: contemporary_society
+
+                  - id: psychological_breakdown
+                    type: abstract
+                    name: "Mental Deterioration"
+                    location: protagonist
+                    relations:
+                      - type: triggered_by
+                        target: technological_fear_manifestation
+                      - type: reveals
+                        target: underlying_vulnerability
+
+                  - id: societal_anxiety
+                    type: abstract
+                    name: "Collective Fear/Discomfort with Technology"
+                    relations:
+                      - type: manifests_as
+                        target: technological_fear_manifestation
+                      - type: present_in
+                        target: contemporary_society
+
+                  - id: underlying_vulnerability
+                    type: abstract
+                    name: "Protagonist's Personal or Societal Weakness"
+                    location: protagonist
+                    relations:
+                      - type: exploited_by
+                        target: technological_fear_manifestation
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Episode 6 -->
+    <div id="modal6" class="modal">
+        <div class="modal-content">
+            <button class="close-button" onclick="closeModal('modal6')">×</button>
+            <h2 class="modal-title">Eulogy - Complete LEGOS Structure</h2>
+            <div style="margin-bottom:18px;">
+                <button onclick="showLegoVis(5)" class="view-button">Show Visualization</button>
+                <button onclick="showLegoYAML(5)" class="view-button">Show YAML</button>
+            </div>
+            <div class="lego-visual-modal" id="legoVisualModal5" style="display:none;"></div>
+            <div class="legos-complete" id="legoYAMLModal5">
+                title: "Eulogy"
+                description: "An examination of grief, memory, and digital legacy in a world where technology blurs the line between life and death."
+
+                entities:
+                  - id: mourner
+                    type: character
+                    name: "Grieving Individual"
+                    location: near_future
+                    relations:
+                      - type: grieves
+                        target: deceased
+                      - type: interacts_with
+                        target: memory_technology
+
+                  - id: deceased
+                    type: character
+                    name: "Deceased Person"
+                    location: digital_memory
+                    relations:
+                      - type: remembered_by
+                        target: mourner
+                      - type: preserved_as
+                        target: digital_presence
+
+                  - id: near_future
+                    type: location
+                    name: "Near-Future Society"
+                    relations:
+                      - type: enables
+                        target: memory_technology
+                      - type: challenges
+                        target: traditional_grief
+
+                  - id: digital_memory
+                    type: location
+                    name: "Digital Memorial Space/Platform"
+                    relations:
+                      - type: contains
+                        target: digital_presence
+                      - type: accessed_via
+                        target: memory_technology
+
+                  - id: memory_technology
+                    type: prop
+                    name: "Memory Preservation/Access System"
+                    location: near_future
+                    relations:
+                      - type: creates_or_accesses
+                        target: digital_presence
+                      - type: alters
+                        target: grief_process
+                      - type: used_by
+                        target: mourner
+
+                  - id: digital_presence
+                    type: abstract
+                    name: "Digital Remnant/Simulation of Deceased"
+                    location: digital_memory
+                    relations:
+                      - type: derived_from
+                        target: deceased
+                      - type: interacted_with_by
+                        target: mourner
+
+                  - id: grief_process
+                    type: abstract
+                    name: "Experience of Loss and Mourning"
+                    location: mourner
+                    relations:
+                      - type: complicated_by
+                        target: memory_technology
+                      - type: central_to
+                        target: narrative_arc
+
+                  - id: narrative_arc
+                    type: abstract
+                    name: "Emotional Journey of Mourner"
+                    relations:
+                      - type: centers_on
+                        target: mourner
+                      - type: questions
+                        target: technology_ethics
+
+                  - id: traditional_grief
+                    type: abstract
+                    name: "Conventional Ways of Mourning"
+                    relations:
+                      - type: challenged_by
+                        target: memory_technology
+                      - type: compared_to
+                        target: grief_process
+
+                  - id: technology_ethics
+                    type: abstract
+                    name: "Ethical Questions about Digital Legacy"
+                    relations:
+                      - type: questioned_by
+                        target: narrative_arc
+                      - type: related_to
+                        target: memory_technology
+            </div>
+        </div>
+    </div>
+
+    <!-- End Modal Popups -->
+
+    <footer class="footer">
+        Black Mirror Season 7 - LEGO Visualization Concept | Data based on hypothetical S7 descriptions and LEGOS format.
+    </footer>
+
+    <script>
+        // Function to open a specific modal
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active'); // Use class for transitions
+                // Optional: Trap focus inside the modal for accessibility
+                // Optional: Disable body scroll
+                // document.body.style.overflow = 'hidden';
+            }
+        }
+
+        // Function to close a specific modal
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                 modal.classList.remove('active'); // Use class for transitions
+                 // Optional: Restore body scroll
+                 // document.body.style.overflow = '';
+            }
+        }
+
+        // Close modal if user clicks outside the modal content
+        window.addEventListener('click', function(event) {
+            const modals = document.querySelectorAll('.modal.active'); // Only check active modals
+            modals.forEach(modal => {
+                 // Check if the click target is the modal background itself
+                 if (event.target == modal) {
+                    closeModal(modal.id);
+                 }
+            });
+        });
+
+        // Close modal if user presses the Escape key
+        window.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                 const modals = document.querySelectorAll('.modal.active');
+                 modals.forEach(modal => {
+                    closeModal(modal.id);
+                 });
+            }
+        });
+
+        // --- LEGOS-format episode data ---
+        const EPISODES = [
+            // ... (Insert all episode objects here, as in BLACK-LEGO.html) ...
+        ];
+        function showLegoVis(idx) {
+            document.getElementById('legoVisualModal'+idx).style.display = '';
+            document.getElementById('legoYAMLModal'+idx).style.display = 'none';
+            renderLegoVisualModal(idx);
+        }
+        function showLegoYAML(idx) {
+            document.getElementById('legoVisualModal'+idx).style.display = 'none';
+            document.getElementById('legoYAMLModal'+idx).style.display = '';
+        }
+        function renderLegoVisualModal(idx) {
+            const container = document.getElementById('legoVisualModal'+idx);
+            container.innerHTML = '';
+            const ep = EPISODES[idx];
+            // Layout: Place blocks in a circle
+            const n = ep.entities.length;
+            const cx = 350, cy = 220, r = 140;
+            const blockPositions = {};
+            ep.entities.forEach((entity, i) => {
+                const angle = (2 * Math.PI * i) / n;
+                const x = cx + r * Math.cos(angle);
+                const y = cy + r * Math.sin(angle);
+                blockPositions[entity.id] = {x, y};
+            });
+            // SVG for arrows
+            const svgNS = 'http://www.w3.org/2000/svg';
+            const svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('width', '700');
+            svg.setAttribute('height', '440');
+            svg.style.position = 'absolute';
+            svg.style.left = '0';
+            svg.style.top = '0';
+            // Arrowhead marker
+            const defs = document.createElementNS(svgNS, 'defs');
+            const marker = document.createElementNS(svgNS, 'marker');
+            marker.setAttribute('id', 'arrowhead');
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '7');
+            marker.setAttribute('refX', '10');
+            marker.setAttribute('refY', '3.5');
+            marker.setAttribute('orient', 'auto');
+            marker.setAttribute('markerUnits', 'strokeWidth');
+            const arrowPath = document.createElementNS(svgNS, 'path');
+            arrowPath.setAttribute('d', 'M0,0 L10,3.5 L0,7 Z');
+            arrowPath.setAttribute('fill', 'var(--lego-yellow)');
+            marker.appendChild(arrowPath);
+            defs.appendChild(marker);
+            svg.appendChild(defs);
+            // Draw arrows
+            ep.entities.forEach(entity => {
+                if (!entity.relations) return;
+                entity.relations.forEach(rel => {
+                    const from = blockPositions[entity.id];
+                    const to = blockPositions[rel.target];
+                    if (!from || !to) return;
+                    // Draw a curved line
+                    const dx = to.x - from.x, dy = to.y - from.y;
+                    const mx = (from.x + to.x) / 2 + (dy) * 0.18;
+                    const my = (from.y + to.y) / 2 - (dx) * 0.18;
+                    const path = document.createElementNS(svgNS, 'path');
+                    path.setAttribute('d', `M${from.x},${from.y} Q${mx},${my} ${to.x},${to.y}`);
+                    path.setAttribute('class', 'arrow');
+                    svg.appendChild(path);
+                    // Arrow label
+                    const lx = (from.x + mx) / 2, ly = (from.y + my) / 2;
+                    const label = document.createElementNS(svgNS, 'text');
+                    label.setAttribute('x', lx);
+                    label.setAttribute('y', ly);
+                    label.setAttribute('class', 'arrow-label');
+                    label.textContent = rel.type;
+                    svg.appendChild(label);
+                });
+            });
+            container.style.position = 'relative';
+            container.style.width = '700px';
+            container.style.height = '440px';
+            container.appendChild(svg);
+            // Draw blocks
+            ep.entities.forEach(entity => {
+                const {x, y} = blockPositions[entity.id];
+                const block = document.createElement('div');
+                block.className = 'lego-block ' + entity.type;
+                block.style.left = (x - 60) + 'px';
+                block.style.top = (y - 32) + 'px';
+                block.style.position = 'absolute';
+                block.style.zIndex = 2;
+                block.textContent = entity.name;
+                // Details popup on click
+                block.onclick = e => {
+                    alert(`${entity.name}\n[${entity.type}]${entity.location ? '\nLocation: '+entity.location : ''}\nRelations:\n` + (entity.relations ? entity.relations.map(rel => `${rel.type} → ${getEntityName(ep, rel.target)}`).join('\n') : 'None'));
+                    e.stopPropagation();
+                };
+                container.appendChild(block);
+            });
+        }
+        function getEntityName(ep, id) {
+            const ent = ep.entities.find(e => e.id === id);
+            return ent ? ent.name : id;
+        }
+    </script>
+</body>
+</html>

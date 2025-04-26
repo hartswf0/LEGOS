@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>NEW-POW: LEGOS Narrative World Engine</title>
+  <style>
+    body { background:#0d1017; color:#e6eaf3; font-family:'Segoe UI',Arial,sans-serif; margin:0; }
+    header { background:#1c2636; color:#fff; padding:1.2rem 2rem; font-size:1.5rem; font-weight:bold; letter-spacing:0.02em; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+    main { display:flex; flex-direction:row; gap:1.5rem; padding:1.5rem; }
+    .panel { background:#181e29; border-radius:13px; box-shadow:0 2px 12px rgba(0,0,0,0.08); padding:1.2rem; flex:1 1 0; min-width:250px; max-width:370px; display:flex; flex-direction:column; gap:1.2rem; }
+    .center { flex:2 2 0; min-width:420px; max-width:900px; background:#131722; border-radius:13px; }
+    .lego-block { width:32px; height:32px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1em; color:#fff; position:relative; box-shadow:0 2px 7px #0002; margin:0 2px; }
+    .lego-block.type-Location { background:#5abaff; }
+    .lego-block.type-Entity { background:#ffe066; color:#5c4700; }
+    .lego-block.type-Goal { background:#5bf89b; color:#106b3c; }
+    .lego-block.type-Obstacle { background:#c18aff; }
+    .lego-block.type-Shift { background:#ffe6b2; color:#7e5a00; }
+    .lego-block.type-Solution { background:#ffb3b3; color:#a14545; }
+    .lego-block .stud { width:10px; height:10px; background:#fff8c2; border-radius:50%; border:1.5px solid #e3b800; position:absolute; top:-7px; left:50%; transform:translateX(-50%); }
+    .controls { display:flex; flex-direction:row; gap:0.5em; margin-bottom:1em; flex-wrap:wrap; }
+    .controls button { background:#5abaff; color:#131722; font-weight:bold; border:1px solid #5abaff; border-radius:5px; padding:0.3em 0.9em; font-size:1em; cursor:pointer; transition:background 0.18s; }
+    .controls button:hover { background:#8fd3ff; }
+    .narrative-log { background:#23293a; border-radius:8px; padding:0.7em 1em; margin-top:1em; min-height:5em; color:#8fd3ff; font-size:1.06em; max-height:200px; overflow-y:auto; }
+    .story-log { background:#181e29; border-radius:8px; padding:1em 1.2em; margin:1em 0 0 0; color:#e6eaf3; font-size:1.09em; min-height:6em; max-height:320px; overflow-y:auto; }
+    .lego-world { display:flex; flex-direction:column; gap:1em; align-items:flex-start; }
+    .lego-row { display:flex; flex-direction:row; gap:0.5em; align-items:center; }
+    .relation { color:#8fd3ff; font-size:1.1em; margin:0 0.2em; }
+    .highlight { background: #5abaff33; transition: background 0.4s; }
+    .stepper { display:flex; flex-direction:row; gap:0.5em; align-items:center; margin:1em 0; }
+    .step-btn { border:1px solid #5abaff; background:#23293a; color:#e6eaf3; border-radius:5px; padding:0.3em 1em; font-size:1em; cursor:pointer; transition:background 0.2s; }
+    .step-btn:disabled { opacity:0.5; cursor:default; }
+    @media (max-width: 1000px) { main { flex-direction:column; } .panel, .center { max-width:100%; min-width:0; } }
+  </style>
+</head>
+<body>
+<header>
+  NEW-POW: LEGOS Narrative World Engine
+</header>
+<main>
+  <section class="panel">
+    <h3>World Controls</h3>
+    <div class="controls">
+      <button onclick="startStory()">Start</button>
+      <button onclick="pauseStory()">Pause</button>
+      <button onclick="resetStory()">Reset</button>
+      <button onclick="stepStory()">Step</button>
+      <button onclick="randomWorld()">Random World</button>
+    </div>
+    <div class="narrative-log" id="narrative-log"></div>
+    <div style="font-size:0.97em;color:#5abaff;margin-top:0.7em;">LEGOS block types: <span class="lego-block type-Location">L<div class="stud"></div></span> Location <span class="lego-block type-Entity">E<div class="stud"></div></span> Entity <span class="lego-block type-Goal">G<div class="stud"></div></span> Goal <span class="lego-block type-Obstacle">O<div class="stud"></div></span> Obstacle <span class="lego-block type-Shift">S<div class="stud"></div></span> Shift <span class="lego-block type-Solution">U<div class="stud"></div></span> Solution</div>
+  </section>
+  <section class="panel center">
+    <h3>LEGOS World (Movie View)</h3>
+    <div class="lego-world" id="lego-world"></div>
+    <div class="story-log" id="story-log"></div>
+  </section>
+</main>
+<script>
+// --- LEGOS Narrative World Model ---
+const blockTypes = [
+  {type:'Location', symbol:'L'},
+  {type:'Entity', symbol:'E'},
+  {type:'Goal', symbol:'G'},
+  {type:'Obstacle', symbol:'O'},
+  {type:'Shift', symbol:'S'},
+  {type:'Solution', symbol:'U'}
+];
+
+// Relations: [from, relation, to]
+let world = {
+  blocks: [], // {id, type, label}
+  relations: [] // {from, relation, to}
+};
+let storySteps = [];
+let currentStep = 0;
+let playing = false;
+let storyTimer = null;
+let narrative = [];
+
+function randomWorld() {
+  // Generate a random LEGOS world (blocks and relations)
+  world.blocks = [];
+  world.relations = [];
+  let nLoc = Math.floor(Math.random()*2)+1;
+  let nEnt = Math.floor(Math.random()*2)+1;
+  let nGoal = Math.floor(Math.random()*2)+1;
+  let nObs = Math.floor(Math.random()*2)+1;
+  let nShift = Math.floor(Math.random()*2);
+  let nSol = Math.floor(Math.random()*2);
+  let id = 1;
+  for(let i=0;i<nLoc;i++) world.blocks.push({id:'L'+id++,type:'Location',label:'Place '+i});
+  for(let i=0;i<nEnt;i++) world.blocks.push({id:'E'+id++,type:'Entity',label:'Entity '+i});
+  for(let i=0;i<nGoal;i++) world.blocks.push({id:'G'+id++,type:'Goal',label:'Goal '+i});
+  for(let i=0;i<nObs;i++) world.blocks.push({id:'O'+id++,type:'Obstacle',label:'Obstacle '+i});
+  for(let i=0;i<nShift;i++) world.blocks.push({id:'S'+id++,type:'Shift',label:'Shift '+i});
+  for(let i=0;i<nSol;i++) world.blocks.push({id:'U'+id++,type:'Solution',label:'Solution '+i});
+  // Add random relations (snap logic)
+  let b = world.blocks;
+  if(b.length>2) {
+    for(let i=0;i<Math.floor(b.length*1.5);i++) {
+      let from = b[Math.floor(Math.random()*b.length)];
+      let to = b[Math.floor(Math.random()*b.length)];
+      if(from!==to) {
+        let rel = chooseRelation(from.type, to.type);
+        if(rel) world.relations.push({from:from.id,relation:rel,to:to.id});
+      }
+    }
+  }
+  buildStory();
+  renderWorld();
+  renderNarrative();
+  renderStoryLog();
+}
+function chooseRelation(t1, t2) {
+  // LEGOS semantic morphisms
+  if(t1==='Entity'&&t2==='Location') return 'is at';
+  if(t1==='Entity'&&t2==='Goal') return 'seeks';
+  if(t1==='Entity'&&t2==='Obstacle') return 'faces';
+  if(t1==='Entity'&&t2==='Shift') return 'can perform';
+  if(t1==='Entity'&&t2==='Solution') return 'achieves';
+  if(t1==='Goal'&&t2==='Location') return 'is in';
+  if(t1==='Obstacle'&&t2==='Location') return 'blocks';
+  if(t1==='Obstacle'&&t2==='Goal') return 'blocks';
+  if(t1==='Shift'&&t2==='Obstacle') return 'resolves';
+  if(t1==='Solution'&&t2==='Goal') return 'fulfills';
+  return null;
+}
+
+function buildStory() {
+  // Build a sequence of story steps from world state
+  storySteps = [];
+  let used = new Set();
+  // 1. Entities move to locations
+  world.relations.forEach(r=>{
+    if(r.relation==='is at') {
+      storySteps.push({type:'move', entity:r.from, location:r.to});
+      used.add(r.from+':'+r.to);
+    }
+  });
+  // 2. Entities seek goals
+  world.relations.forEach(r=>{
+    if(r.relation==='seeks') {
+      storySteps.push({type:'seek', entity:r.from, goal:r.to});
+      used.add(r.from+':'+r.to);
+    }
+  });
+  // 3. Entities face obstacles
+  world.relations.forEach(r=>{
+    if(r.relation==='faces') {
+      storySteps.push({type:'face', entity:r.from, obstacle:r.to});
+      used.add(r.from+':'+r.to);
+    }
+  });
+  // 4. Entities perform shifts
+  world.relations.forEach(r=>{
+    if(r.relation==='can perform') {
+      storySteps.push({type:'shift', entity:r.from, shift:r.to});
+      used.add(r.from+':'+r.to);
+    }
+  });
+  // 5. Shifts resolve obstacles
+  world.relations.forEach(r=>{
+    if(r.relation==='resolves') {
+      storySteps.push({type:'resolve', shift:r.from, obstacle:r.to});
+      used.add(r.from+':'+r.to);
+    }
+  });
+  // 6. Solutions fulfill goals
+  world.relations.forEach(r=>{
+    if(r.relation==='fulfills') {
+      storySteps.push({type:'fulfill', solution:r.from, goal:r.to});
+      used.add(r.from+':'+r.to);
+    }
+  });
+  // 7. Entities achieve solution
+  world.relations.forEach(r=>{
+    if(r.relation==='achieves') {
+      storySteps.push({type:'achieve', entity:r.from, solution:r.to});
+      used.add(r.from+':'+r.to);
+    }
+  });
+  // 8. Obstacles block goals/locations
+  world.relations.forEach(r=>{
+    if(r.relation==='blocks') {
+      storySteps.push({type:'block', obstacle:r.from, target:r.to});
+      used.add(r.from+':'+r.to);
+    }
+  });
+  // 9. Goals are in locations
+  world.relations.forEach(r=>{
+    if(r.relation==='is in') {
+      storySteps.push({type:'goal_in', goal:r.from, location:r.to});
+      used.add(r.from+':'+r.to);
+    }
+  });
+}
+
+function renderWorld(highlight={}) {
+  const el = document.getElementById('lego-world');
+  el.innerHTML = '';
+  // Render blocks
+  world.blocks.forEach(b=>{
+    let div = document.createElement('div');
+    div.className = `lego-block type-${b.type}`;
+    div.innerHTML = `${blockTypes.find(bt=>bt.type===b.type).symbol}<div class='stud'></div>`;
+    div.title = b.label;
+    if(highlight[b.id]) div.classList.add('highlight');
+    el.appendChild(div);
+  });
+  // Render relations as text
+  let rels = world.relations.map(r=>{
+    let f = world.blocks.find(b=>b.id===r.from);
+    let t = world.blocks.find(b=>b.id===r.to);
+    return `<div class='lego-row'><span class='lego-block type-${f.type}'>${blockTypes.find(bt=>bt.type===f.type).symbol}<div class='stud'></div></span><span class='relation'>${r.relation}</span><span class='lego-block type-${t.type}'>${blockTypes.find(bt=>bt.type===t.type).symbol}<div class='stud'></div></span></div>`;
+  }).join('');
+  el.innerHTML += '<div style="margin-top:1em;">'+rels+'</div>';
+}
+
+function renderNarrative() {
+  const log = document.getElementById('narrative-log');
+  log.innerHTML = narrative.slice(-8).map(e=>`<div>${e}</div>`).join('');
+}
+
+function renderStoryLog() {
+  const log = document.getElementById('story-log');
+  log.innerHTML = storySteps.map((s,i)=>{
+    let txt = storyStepText(s);
+    return `<div${i===currentStep?' style="background:#5abaff22;"':''}>${txt}</div>`;
+  }).join('');
+}
+
+function storyStepText(s) {
+  let b = id=>world.blocks.find(x=>x.id===id);
+  switch(s.type) {
+    case 'move': return `${b(s.entity).label} arrives at ${b(s.location).label}.`;
+    case 'seek': return `${b(s.entity).label} seeks ${b(s.goal).label}.`;
+    case 'face': return `${b(s.entity).label} faces ${b(s.obstacle).label}.`;
+    case 'shift': return `${b(s.entity).label} can perform ${b(s.shift).label}.`;
+    case 'resolve': return `${b(s.shift).label} resolves ${b(s.obstacle).label}.`;
+    case 'fulfill': return `${b(s.solution).label} fulfills ${b(s.goal).label}.`;
+    case 'achieve': return `${b(s.entity).label} achieves ${b(s.solution).label}.`;
+    case 'block': return `${b(s.obstacle).label} blocks ${b(s.target).label}.`;
+    case 'goal_in': return `${b(s.goal).label} is in ${b(s.location).label}.`;
+    default: return JSON.stringify(s);
+  }
+}
+
+function startStory() {
+  if(playing) return;
+  playing = true;
+  storyTimer = setInterval(()=>{
+    if(currentStep<storySteps.length) {
+      stepStory();
+    } else {
+      pauseStory();
+    }
+  }, 1200);
+}
+function pauseStory() {
+  playing = false;
+  clearInterval(storyTimer);
+}
+function resetStory() {
+  pauseStory();
+  currentStep = 0;
+  narrative = [];
+  renderWorld();
+  renderNarrative();
+  renderStoryLog();
+}
+function stepStory() {
+  if(currentStep>=storySteps.length) return;
+  let s = storySteps[currentStep];
+  let highlight = {};
+  // Highlight relevant blocks for this step
+  switch(s.type) {
+    case 'move': highlight[s.entity]=true; highlight[s.location]=true; break;
+    case 'seek': highlight[s.entity]=true; highlight[s.goal]=true; break;
+    case 'face': highlight[s.entity]=true; highlight[s.obstacle]=true; break;
+    case 'shift': highlight[s.entity]=true; highlight[s.shift]=true; break;
+    case 'resolve': highlight[s.shift]=true; highlight[s.obstacle]=true; break;
+    case 'fulfill': highlight[s.solution]=true; highlight[s.goal]=true; break;
+    case 'achieve': highlight[s.entity]=true; highlight[s.solution]=true; break;
+    case 'block': highlight[s.obstacle]=true; highlight[s.target]=true; break;
+    case 'goal_in': highlight[s.goal]=true; highlight[s.location]=true; break;
+  }
+  renderWorld(highlight);
+  let txt = storyStepText(s);
+  narrative.push(txt);
+  renderNarrative();
+  renderStoryLog();
+  currentStep++;
+}
+
+// --- INIT ---
+randomWorld();
+</script>
+</body>
+</html>

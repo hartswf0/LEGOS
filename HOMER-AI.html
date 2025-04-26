@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>HOMER-AI: LEGOS Scene Builder</title>
+  <style>
+    body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#e7eaf1; color:#222; }
+    header { background:#1b2b3a; color:#fff; padding:1.3rem 2rem; font-size:1.7rem; font-weight:bold; letter-spacing:0.03em; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+    main { display:flex; flex-direction:row; gap:1.5rem; padding:1.5rem; }
+    .panel { background:#fff; border-radius:13px; box-shadow:0 2px 12px rgba(0,0,0,0.08); padding:1.2rem; flex:1 1 0; min-width:270px; max-width:400px; display:flex; flex-direction:column; gap:1.2rem; }
+    .center { flex:2 2 0; min-width:380px; max-width:700px; }
+    h3, h4 { margin:0.2em 0 0.6em 0; }
+    ul { list-style:none; padding:0; margin:0; }
+    li { margin-bottom:0.3em; display:flex; align-items:center; gap:0.5em; }
+    .lego-block { display:inline-block; min-width:70px; min-height:36px; background:#f8d44c; border-radius:8px 8px 6px 6px; box-shadow:0 2px 6px #e3b80033; margin:0 0.2em; padding:0.3em 0.7em; font-weight:bold; color:#5c4700; position:relative; }
+    .lego-stud { display:inline-block; width:16px; height:16px; background:#ffe98a; border-radius:50%; border:2px solid #e3b800; position:absolute; top:-11px; left:10px; }
+    .lego-block.type-Entity { background:#f8d44c; color:#5c4700; }
+    .lego-block.type-Prop { background:#b2e2f2; color:#24556b; }
+    .lego-block.type-Monster { background:#f5a3a3; color:#7c1b1b; }
+    .lego-block.type-Goal { background:#b6f8c7; color:#1a6e3a; }
+    .lego-block.type-Obstacle { background:#e0d2f7; color:#4b2c7f; }
+    .lego-block.type-Location { background:#d0e4fe; color:#1b3c6b; }
+    .lego-block.type-Shift { background:#ffe6b2; color:#7e5a00; }
+    .lego-block.type-Event { background:#ffe3e3; color:#a14545; }
+    .lego-block .lego-stud { left:50%; transform:translateX(-50%); }
+    .lego-btn { font-size:1em; border-radius:5px; border:1px solid #c2cbe2; padding:0.25em 0.8em; background:#f8fafc; margin-left:0.4em; transition:background 0.2s; }
+    .lego-btn:hover { background:#e5eaf6; cursor:pointer; }
+    .panel svg { width:100%; height:430px; background:#f8fafc; border-radius:10px; margin-bottom:0.5rem; }
+    .morphism { color:#4b6cb7; font-weight:500; background:#f2f5ff; border-radius:4px; padding:0.1em 0.45em; margin:0 0.15em; }
+    .narrative { background:#f9fbe7; border-radius:8px; padding:1em; font-size:1.08em; min-height:6em; margin-bottom:0.5em; white-space:pre-line; }
+    .preset-btns button { margin-right:0.5em; }
+    .block-palette { display:flex; flex-wrap:wrap; gap:0.5em; margin-bottom:0.7em; }
+    .block-palette .lego-block { cursor:pointer; opacity:0.85; transition:box-shadow 0.2s, opacity 0.2s; }
+    .block-palette .lego-block:hover { box-shadow:0 0 0 3px #b6f8c7; opacity:1; }
+    @media (max-width: 1000px) { main { flex-direction:column; } .panel, .center { max-width:100%; min-width:0; } }
+  </style>
+</head>
+<body>
+<header>
+  HOMER-AI — LEGOS Scene Builder <span style="font-size:1.1rem;font-weight:normal">(Universal Grammar for Mythic Worlds)</span>
+</header>
+<main>
+  <section class="panel">
+    <h3>Block Palette</h3>
+    <div class="block-palette" id="block-palette"></div>
+    <h4>Add Block to Scene</h4>
+    <form id="block-form" onsubmit="addBlock(event)">
+      <input id="block-name" type="text" placeholder="Name (e.g. Odysseus)" required style="width:54%">
+      <select id="block-type" required style="width:44%">
+        <option value="Entity">Entity</option>
+        <option value="Prop">Prop</option>
+        <option value="Monster">Monster</option>
+        <option value="Goal">Goal</option>
+        <option value="Obstacle">Obstacle</option>
+        <option value="Location">Location</option>
+        <option value="Shift">Shift</option>
+        <option value="Event">Event</option>
+      </select>
+      <button type="submit" class="lego-btn">Add</button>
+    </form>
+    <ul id="blocks-list"></ul>
+  </section>
+  <section class="panel center">
+    <h3>Scene Assembly (Snap Morphisms)</h3>
+    <ul id="morphisms-list"></ul>
+    <form id="morphism-form" onsubmit="addMorphism(event)">
+      <select id="morph-from"></select>
+      <select id="morph-type"></select>
+      <select id="morph-to"></select>
+      <button type="submit" class="lego-btn">Snap</button>
+    </form>
+    <h3 style="margin-top:2em;">LEGOS Scene Graph</h3>
+    <svg id="scene-svg"></svg>
+  </section>
+  <section class="panel">
+    <h3>Scene Narrative</h3>
+    <div class="narrative" id="narrative-output"></div>
+    <h4>Presets</h4>
+    <div class="preset-btns">
+      <button onclick="loadPreset('cyclops')">Cyclops' Cave</button>
+      <button onclick="loadPreset('circe')">Circe's Island</button>
+      <button onclick="loadPreset('suitors')">Suitor Slaughter</button>
+      <button onclick="loadPreset('blank')">Blank</button>
+    </div>
+  </section>
+</main>
+<script>
+// --- LEGOS Block Types ---
+const BLOCK_TYPES = [
+  {type:'Entity', color:'#f8d44c'},
+  {type:'Prop', color:'#b2e2f2'},
+  {type:'Monster', color:'#f5a3a3'},
+  {type:'Goal', color:'#b6f8c7'},
+  {type:'Obstacle', color:'#e0d2f7'},
+  {type:'Location', color:'#d0e4fe'},
+  {type:'Shift', color:'#ffe6b2'},
+  {type:'Event', color:'#ffe3e3'}
+];
+
+const MORPHISMS = [
+  {from:'Entity', type:'is at', to:'Location'},
+  {from:'Entity', type:'has', to:'Goal'},
+  {from:'Entity', type:'encounters', to:'Monster'},
+  {from:'Entity', type:'encounters', to:'Obstacle'},
+  {from:'Entity', type:'offers', to:'Prop'},
+  {from:'Entity', type:'uses', to:'Prop'},
+  {from:'Entity', type:'executes', to:'Shift'},
+  {from:'Entity', type:'is disguised as', to:'Entity'},
+  {from:'Entity', type:'reunites with', to:'Entity'},
+  {from:'Entity', type:'defeats', to:'Monster'},
+  {from:'Entity', type:'defeats', to:'Entity'},
+  {from:'Entity', type:'satisfies', to:'Goal'},
+  {from:'Entity', type:'resists', to:'Obstacle'},
+  {from:'Entity', type:'restores', to:'Entity'},
+  {from:'Entity', type:'transforms', to:'Entity'},
+  {from:'Prop', type:'used by', to:'Entity'},
+  {from:'Prop', type:'offered to', to:'Monster'},
+  {from:'Prop', type:'offered to', to:'Entity'},
+  {from:'Monster', type:'is at', to:'Location'},
+  {from:'Monster', type:'blocks', to:'Goal'},
+  {from:'Monster', type:'blocks', to:'Entity'},
+  {from:'Monster', type:'transformed by', to:'Shift'},
+  {from:'Monster', type:'defeated by', to:'Entity'},
+  {from:'Goal', type:'is located at', to:'Location'},
+  {from:'Goal', type:'satisfied by', to:'Entity'},
+  {from:'Obstacle', type:'is at', to:'Location'},
+  {from:'Obstacle', type:'blocks', to:'Goal'},
+  {from:'Obstacle', type:'blocks', to:'Entity'},
+  {from:'Obstacle', type:'transformed by', to:'Shift'},
+  {from:'Obstacle', type:'defeated by', to:'Entity'},
+  {from:'Shift', type:'resolves', to:'Obstacle'},
+  {from:'Shift', type:'resolves', to:'Monster'},
+  {from:'Shift', type:'satisfies', to:'Goal'},
+  {from:'Shift', type:'restores', to:'Entity'},
+  {from:'Event', type:'involves', to:'Entity'},
+  {from:'Event', type:'occurs at', to:'Location'}
+];
+
+let blocks = [];
+let morphisms = [];
+
+function resetState(newBlocks, newMorphisms) {
+  blocks = JSON.parse(JSON.stringify(newBlocks));
+  morphisms = JSON.parse(JSON.stringify(newMorphisms));
+  renderBlocks();
+  renderMorphisms();
+  renderSceneGraph();
+  renderNarrative();
+  updateMorphismForm();
+}
+
+// --- Block Palette ---
+function renderBlockPalette() {
+  const palette = document.getElementById('block-palette');
+  palette.innerHTML = '';
+  BLOCK_TYPES.forEach(bt => {
+    const div = document.createElement('div');
+    div.className = 'lego-block type-' + bt.type;
+    div.textContent = bt.type;
+    div.title = 'Add a ' + bt.type;
+    div.onclick = () => {
+      document.getElementById('block-type').value = bt.type;
+      document.getElementById('block-name').focus();
+    };
+    const stud = document.createElement('span');
+    stud.className = 'lego-stud';
+    div.appendChild(stud);
+    palette.appendChild(div);
+  });
+}
+
+// --- Blocks ---
+function addBlock(e) {
+  e.preventDefault();
+  const name = document.getElementById('block-name').value.trim();
+  const type = document.getElementById('block-type').value;
+  if (!name || blocks.find(b => b.name === name)) return;
+  blocks.push({ name, type });
+  document.getElementById('block-name').value = '';
+  renderBlocks();
+  updateMorphismForm();
+}
+function deleteBlock(name) {
+  blocks = blocks.filter(b => b.name !== name);
+  morphisms = morphisms.filter(m => m.from !== name && m.to !== name);
+  renderBlocks();
+  renderMorphisms();
+  renderSceneGraph();
+  renderNarrative();
+  updateMorphismForm();
+}
+function renderBlocks() {
+  const ul = document.getElementById('blocks-list');
+  ul.innerHTML = '';
+  blocks.forEach(b => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class='lego-block type-${b.type}'>${b.name}<span class='lego-stud'></span></span> <span style='font-size:0.97em;color:#888;'>(${b.type})</span> <button class='lego-btn' onclick=\"deleteBlock('${b.name}')\" title=\"Delete\">✕</button>`;
+    ul.appendChild(li);
+  });
+}
+
+// --- Morphisms ---
+function addMorphism(e) {
+  e.preventDefault();
+  const from = document.getElementById('morph-from').value;
+  const type = document.getElementById('morph-type').value;
+  const to = document.getElementById('morph-to').value;
+  if (!from || !type || !to) return;
+  // Enforce grammar
+  const fromType = blocks.find(b => b.name === from)?.type;
+  const toType = blocks.find(b => b.name === to)?.type;
+  if (!MORPHISMS.find(m => m.from === fromType && m.type === type && m.to === toType)) return;
+  morphisms.push({ from, type, to });
+  renderMorphisms();
+  renderSceneGraph();
+  renderNarrative();
+}
+function deleteMorphism(idx) {
+  morphisms.splice(idx, 1);
+  renderMorphisms();
+  renderSceneGraph();
+  renderNarrative();
+}
+function renderMorphisms() {
+  const ul = document.getElementById('morphisms-list');
+  ul.innerHTML = '';
+  morphisms.forEach((m, i) => {
+    ul.innerHTML += `<li><span class='lego-block type-${blocks.find(b=>b.name===m.from)?.type||'Entity'}'>${m.from}<span class='lego-stud'></span></span> <span class='morphism'>[${m.type}]</span> <span class='lego-block type-${blocks.find(b=>b.name===m.to)?.type||'Entity'}'>${m.to}<span class='lego-stud'></span></span> <button class='lego-btn' onclick=\"deleteMorphism(${i})\">✕</button></li>`;
+  });
+}
+
+// --- Morphism Form Filtering ---
+function updateMorphismForm() {
+  const selFrom = document.getElementById('morph-from');
+  const selTo = document.getElementById('morph-to');
+  const selType = document.getElementById('morph-type');
+  selFrom.innerHTML = '';
+  selTo.innerHTML = '';
+  selType.innerHTML = '';
+  blocks.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.name;
+    opt.textContent = b.name + ' (' + b.type + ')';
+    selFrom.appendChild(opt.cloneNode(true));
+    selTo.appendChild(opt.cloneNode(true));
+  });
+  selFrom.onchange = selTo.onchange = function() {
+    selType.innerHTML = '';
+    const from = selFrom.value;
+    const to = selTo.value;
+    if (!from || !to) return;
+    const fromType = blocks.find(b => b.name === from)?.type;
+    const toType = blocks.find(b => b.name === to)?.type;
+    MORPHISMS.filter(m => m.from === fromType && m.to === toType).forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.type;
+      opt.textContent = m.type;
+      selType.appendChild(opt);
+    });
+  };
+  if (blocks.length >= 2) {
+    selFrom.selectedIndex = 0;
+    selTo.selectedIndex = 1;
+    selFrom.onchange();
+  }
+}
+
+// --- SVG Graph ---
+function renderSceneGraph() {
+  const svg = document.getElementById('scene-svg');
+  svg.innerHTML = '';
+  // Simple vertical stack
+  const nodeY = {};
+  const spacingY = 62, startY = 60, startX = 130, nodeW = 120, nodeH = 40;
+  blocks.forEach((b, i) => { nodeY[b.name] = startY + i * spacingY; });
+  // Draw edges
+  morphisms.forEach(m => {
+    if (!(m.from in nodeY) || !(m.to in nodeY)) return;
+    const y1 = nodeY[m.from] + nodeH/2;
+    const y2 = nodeY[m.to] + nodeH/2;
+    svg.innerHTML += `<defs><marker id='arrow' markerWidth='8' markerHeight='8' refX='8' refY='4' orient='auto' markerUnits='strokeWidth'><path d='M0,0 L8,4 L0,8' fill='#8a8'/></marker></defs>`;
+    svg.innerHTML += `<line x1='${startX+nodeW}' y1='${y1}' x2='${startX+nodeW+50}' y2='${y1}' stroke='#8a8' stroke-width='2'/>`;
+    svg.innerHTML += `<line x1='${startX+nodeW+50}' y1='${y1}' x2='${startX+nodeW+50}' y2='${y2}' stroke='#8a8' stroke-width='2'/>`;
+    svg.innerHTML += `<line x1='${startX+nodeW+50}' y1='${y2}' x2='${startX+nodeW*2}' y2='${y2}' stroke='#8a8' stroke-width='2' marker-end='url(#arrow)'/>`;
+    svg.innerHTML += `<text x='${startX+nodeW+55}' y='${(y1+y2)/2}' font-size='13' fill='#5b6c8c'>[${m.type}]</text>`;
+  });
+  // Draw nodes
+  blocks.forEach((b, i) => {
+    const y = nodeY[b.name];
+    svg.innerHTML += `<rect x='${startX}' y='${y}' width='${nodeW}' height='${nodeH}' rx='11' fill='${BLOCK_TYPES.find(bt=>bt.type===b.type)?.color||'#f8d44c'}' stroke='#4b6cb7' stroke-width='2'/>
+      <text x='${startX+nodeW/2}' y='${y+nodeH/2+5}' text-anchor='middle' font-size='15' font-weight='bold' fill='#314b6e'>${b.name}</text>`;
+    svg.innerHTML += `<text x='${startX+nodeW/2}' y='${y+nodeH+16}' text-anchor='middle' font-size='12' fill='#4b6cb7'>${b.type}</text>`;
+  });
+}
+
+// --- Narrative Generation ---
+function renderNarrative() {
+  const out = document.getElementById('narrative-output');
+  if (!blocks.length) { out.textContent = 'Add blocks and snap morphisms to build a mythic scene.'; return; }
+  let lines = [];
+  // For each Entity, Monster, or Prop, narrate their main actions
+  blocks.forEach(b => {
+    if (['Entity','Monster','Prop'].includes(b.type)) {
+      let acts = morphisms.filter(m => m.from === b.name);
+      let line = `<span class='lego-block type-${b.type}'>${b.name}<span class='lego-stud'></span></span>`;
+      acts.forEach(a => {
+        line += ` <span class='morphism'>[${a.type}]</span> <span class='lego-block type-${blocks.find(x=>x.name===a.to)?.type||'Entity'}'>${a.to}<span class='lego-stud'></span></span>`;
+      });
+      lines.push(line);
+    }
+  });
+  out.innerHTML = lines.join('<br>') || 'Add more morphisms to generate the scene.';
+}
+
+// --- Presets ---
+function loadPreset(which) {
+  if (which === 'cyclops') {
+    resetState(
+      [
+        {name:'Odysseus', type:'Entity'},
+        {name:'Polyphemus', type:'Monster'},
+        {name:'Wine Flask', type:'Prop'},
+        {name:'Sheep', type:'Prop'},
+        {name:"Cyclops' Cave", type:'Location'},
+        {name:'Escape cave', type:'Goal'},
+        {name:'Cyclops at entrance', type:'Obstacle'},
+        {name:'Blind + Trick + Hide under Sheep', type:'Shift'},
+      ],
+      [
+        {from:'Odysseus', type:'is at', to:"Cyclops' Cave"},
+        {from:'Odysseus', type:'has', to:'Escape cave'},
+        {from:'Odysseus', type:'encounters', to:'Polyphemus'},
+        {from:'Odysseus', type:'offers', to:'Wine Flask'},
+        {from:'Wine Flask', type:'offered to', to:'Polyphemus'},
+        {from:'Odysseus', type:'executes', to:'Blind + Trick + Hide under Sheep'},
+        {from:'Odysseus', type:'uses', to:'Sheep'},
+        {from:'Blind + Trick + Hide under Sheep', type:'resolves', to:'Cyclops at entrance'},
+        {from:'Blind + Trick + Hide under Sheep', type:'satisfies', to:'Escape cave'},
+      ]
+    );
+  } else if (which === 'circe') {
+    resetState(
+      [
+        {name:'Odysseus', type:'Entity'},
+        {name:'Circe', type:'Entity'},
+        {name:'Crew (Pigged)', type:'Entity'},
+        {name:'Moly', type:'Prop'},
+        {name:'Aeaea', type:'Location'},
+        {name:'Restore Crew', type:'Goal'},
+        {name:'Transformation spell', type:'Obstacle'},
+        {name:'Resist spell + persuade Circe', type:'Shift'},
+      ],
+      [
+        {from:'Odysseus', type:'is at', to:'Aeaea'},
+        {from:'Odysseus', type:'encounters', to:'Circe'},
+        {from:'Odysseus', type:'has', to:'Restore Crew'},
+        {from:'Odysseus', type:'uses', to:'Moly'},
+        {from:'Odysseus', type:'resists', to:'Transformation spell'},
+        {from:'Odysseus', type:'executes', to:'Resist spell + persuade Circe'},
+        {from:'Crew (Pigged)', type:'transformed by', to:'Transformation spell'},
+        {from:'Resist spell + persuade Circe', type:'restores', to:'Crew (Pigged)'},
+      ]
+    );
+  } else if (which === 'suitors') {
+    resetState(
+      [
+        {name:'Odysseus (disguised)', type:'Entity'},
+        {name:'Penelope', type:'Entity'},
+        {name:'Suitors', type:'Entity'},
+        {name:'Bow of Odysseus', type:'Prop'},
+        {name:'Ithaca Palace', type:'Location'},
+        {name:'Reclaim Home', type:'Goal'},
+        {name:'Recognition Risk', type:'Obstacle'},
+        {name:'Armed Suitors', type:'Obstacle'},
+        {name:'Win Contest + Reveal + Kill All', type:'Shift'},
+      ],
+      [
+        {from:'Odysseus (disguised)', type:'is at', to:'Ithaca Palace'},
+        {from:'Odysseus (disguised)', type:'is disguised as', to:'Beggar'},
+        {from:'Odysseus (disguised)', type:'uses', to:'Bow of Odysseus'},
+        {from:'Odysseus (disguised)', type:'executes', to:'Win Contest + Reveal + Kill All'},
+        {from:'Odysseus (disguised)', type:'defeats', to:'Suitors'},
+        {from:'Odysseus (disguised)', type:'reunites with', to:'Penelope'},
+        {from:'Win Contest + Reveal + Kill All', type:'satisfies', to:'Reclaim Home'},
+      ]
+    );
+  } else {
+    resetState([],[]);
+  }
+}
+// --- Init ---
+renderBlockPalette();
+loadPreset('cyclops');
+</script>
+</body>
+</html>

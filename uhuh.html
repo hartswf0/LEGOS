@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>POW-POW: LEGOS Procedural Snap Builder</title>
+  <style>
+    :root {
+      --bg-dark: #0d1017;
+      --bg-panel: #131722;
+      --bg-grid: #141920;
+      --bg-cell: #1c2230;
+      --border-radius: 10px;
+      --blue: #5abaff;
+      --yellow: #ffe066;
+      --green: #5bf89b;
+      --purple: #c18aff;
+      --orange: #ff9e4f;
+      --pink: #ffb3b3;
+      --text-main: #e6eaf3;
+      --text-secondary: #adbac7;
+      --border-color: #2a3243;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body { 
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; 
+      margin: 0; 
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header { 
+      padding: 1.5rem;
+      font-size: 1.6rem; 
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-align: center;
+    }
+    
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0 1rem 2rem 1rem;
+    }
+    
+    .app-container {
+      width: 100%;
+      max-width: 1200px;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      grid-template-rows: auto 1fr auto;
+      background: rgba(19, 23, 34, 0.5);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(8px);
+    }
+    
+    .section-title {
+      padding: 1.25rem;
+      font-size: 1.2rem;
+      font-weight: 500;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    /* Left panel */
+    .left-panel {
+      grid-column: 1;
+      grid-row: 1 / span 3;
+      border-right: 1px solid var(--border-color);
+    }
+    
+    /* Block palette */
+    .block-palette {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1.5rem;
+    }
+    
+    .block-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .block-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      position: relative;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    .block-icon::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 10px;
+      background: #fff8c2;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+    }
+    
+    .block-icon.location { background: var(--blue); }
+    .block-icon.entity { background: var(--yellow); color: #5c4700; }
+    .block-icon.goal { background: var(--green); color: #106b3c; }
+    .block-icon.obstacle { background: var(--purple); }
+    .block-icon.shift { background: var(--orange); color: #7e5a00; }
+    .block-icon.solution { background: var(--pink); color: #a14545; }
+    
+    .block-label {
+      font-size: 1.1rem;
+    }
+    
+    .button-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    
+    button {
+      background: var(--bg-cell);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.5rem 1rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    button:hover {
+      background: rgba(90, 186, 255, 0.1);
+      border-color: var(--blue);
+    }
+    
+    .btn-primary {
+      background: var(--blue);
+      color: var(--bg-dark);
+      border-color: var(--blue);
+    }
+    
+    .btn-primary:hover {
+      background: #7bc8ff;
+      border-color: #7bc8ff;
+    }
+    
+    /* Grid and narrative */
+    .content-area {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+    }
+    
+    .grid-panel, .narrative-panel {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .grid-panel {
+      border-right: 1px solid var(--border-color);
+    }
+    
+    .legos-grid {
+      margin-top: 1.5rem;
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      grid-template-rows: repeat(7, 1fr);
+      gap: 0.5rem;
+      aspect-ratio: 1;
+      align-content: center;
+      justify-content: center;
+    }
+    
+    .legos-cell {
+      background: var(--bg-cell);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: transform 0.15s;
+      cursor: pointer;
+    }
+    
+    .legos-cell:hover {
+      transform: translateY(-2px);
+    }
+    
+    .legos-block {
+      width: calc(100% - 16px);
+      height: calc(100% - 16px);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      position: relative;
+    }
+    
+    .legos-block::before {
+      content: '';
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 10px;
+      background: #fff8c2;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+    }
+    
+    .legos-block.location { background: var(--blue); }
+    .legos-block.entity { background: var(--yellow); color: #5c4700; }
+    .legos-block.goal { background: var(--green); color: #106b3c; }
+    .legos-block.obstacle { background: var(--purple); }
+    .legos-block.shift { background: var(--orange); color: #7e5a00; }
+    .legos-block.solution { background: var(--pink); color: #a14545; }
+    
+    /* Narrative panel */
+    .narrative-panel {
+      overflow: hidden;
+    }
+    
+    .narrative-log {
+      margin-top: 1.5rem;
+      background: var(--bg-cell);
+      border-radius: var(--border-radius);
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      height: calc(7 * 48px + 6 * 8px); /* Match grid dimensions */
+      display: grid;
+      grid-template-rows: repeat(7, 1fr);
+      gap: 8px;
+    }
+    
+    .narrative-scan-line {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      padding: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: relative;
+      transition: background-color 0.3s;
+    }
+    
+    .narrative-scan-line.active {
+      background: rgba(90, 186, 255, 0.15);
+      box-shadow: 0 0 8px rgba(90, 186, 255, 0.3);
+    }
+    
+    .narrative-scan-line:hover {
+      background: rgba(255, 255, 255, 0.15);
+      cursor: pointer;
+    }
+    
+    .scan-lego {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      position: relative;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    
+    .scan-lego.location { background: var(--blue); }
+    .scan-lego.entity { background: var(--yellow); color: #5c4700; }
+    .scan-lego.goal { background: var(--green); color: #106b3c; }
+    .scan-lego.obstacle { background: var(--purple); }
+    .scan-lego.shift { background: var(--orange); color: #7e5a00; }
+    .scan-lego.solution { background: var(--pink); color: #a14545; }
+    
+    .scan-text {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    
+    .scan-action {
+      margin-left: auto;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .narrative-scan-line:hover .scan-action {
+      opacity: 1;
+    }
+    
+    /* Control bar */
+    .control-bar {
+      grid-column: 2;
+      grid-row: 3;
+      padding: 1rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+    }
+    
+    .control-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .speed-control {
+      margin-left: 1rem;
+    }
+    
+    .speed-control label {
+      margin-right: 0.5rem;
+    }
+    
+    .message-input {
+      flex: 1;
+      margin: 0 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-cell);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      color: var(--text-main);
+      font-size: 1rem;
+    }
+    
+    .message-input::placeholder {
+      color: var(--text-secondary);
+    }
+    
+    .send-button {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--bg-cell);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .send-button:hover {
+      background: rgba(90, 186, 255, 0.1);
+      border-color: var(--blue);
+    }
+    
+    /* Animations */
+    @keyframes pulse {
+      0% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+    
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .fade-in {
+      animation: fade-in 0.3s forwards;
+    }
+    
+    .animated {
+      animation: pulse 0.8s infinite;
+    }
+    
+    .transforming {
+      animation: fade-in 0.3s forwards;
+    }
+    
+    .name-indicator {
+      font-size: 0.8rem;
+      margin-left: 0.2rem;
+      color: var(--text-secondary);
+    }
+    
+    .age-indicator {
+      font-size: 0.8rem;
+      margin-left: 0.2rem;
+      color: var(--text-secondary);
+    }
+    
+    .stats-container {
+      padding: 1rem;
+      background: var(--bg-cell);
+      border-radius: var(--border-radius);
+      margin-bottom: 1rem;
+    }
+    
+    .stats-header {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.5rem;
+    }
+    
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+    }
+    
+    .stat-circle {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+    
+    .stat-circle.location { background: var(--blue); }
+    .stat-circle.entity { background: var(--yellow); color: #5c4700; }
+    .stat-circle.goal { background: var(--green); color: #106b3c; }
+    .stat-circle.obstacle { background: var(--purple); }
+    .stat-circle.shift { background: var(--orange); color: #7e5a00; }
+    .stat-circle.solution { background: var(--pink); color: #a14545; }
+    
+    .universe-state {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-top: 0.5rem;
+    }
+    
+    .universe-state.static {
+      color: var(--green);
+    }
+    
+    .universe-state.evolving {
+      color: var(--blue);
+    }
+    
+    .universe-state.chaotic {
+      color: var(--red);
+    }
+    
+    .log-separator {
+      height: 1px;
+      background: var(--border-color);
+      margin: 1rem 0;
+    }
+    
+    .log-entry {
+      padding: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+    
+    .log-time {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    
+    .log-key {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-left: 0.5rem;
+    }
+    
+    .log-text {
+      font-size: 1rem;
+      margin-left: 0.5rem;
+    }
+    
+    .recent-event {
+      padding: 1rem;
+      background: var(--bg-cell);
+      border-radius: var(--border-radius);
+      margin-bottom: 1rem;
+    }
+    
+    .event-cycle {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+    
+    .event-text {
+      font-size: 1rem;
+    }
+    
+    .events-container {
+      overflow: auto;
+      padding: 1rem;
+    }
+    
+    .narrative-event {
+      padding: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .narrative-event:last-child {
+      border-bottom: none;
+    }
+    
+    .event-cycle {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    
+    .event-text {
+      font-size: 1rem;
+    }
+    
+    .narrative-controls {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .slider-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .slider-control label {
+      margin-right: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    POW-POW: LEGOS Procedural Snap Builder
+  </header>
+  
+  <main>
+    <div class="app-container">
+      <!-- Left panel with block palette -->
+      <div class="left-panel">
+        <div class="section-title">LEGOS Block Palette</div>
+        
+        <div class="block-palette">
+          <div class="block-item">
+            <div class="block-icon location">L</div>
+            <div class="block-label">Location</div>
+          </div>
+          
+          <div class="block-item">
+            <div class="block-icon entity">E</div>
+            <div class="block-label">Entity</div>
+          </div>
+          
+          <div class="block-item">
+            <div class="block-icon goal">G</div>
+            <div class="block-label">Goal</div>
+          </div>
+          
+          <div class="block-item">
+            <div class="block-icon obstacle">O</div>
+            <div class="block-label">Obstacle</div>
+          </div>
+          
+          <div class="block-item">
+            <div class="block-icon shift">S</div>
+            <div class="block-label">Shift</div>
+          </div>
+          
+          <div class="block-item">
+            <div class="block-icon solution">U</div>
+            <div class="block-label">Solution</div>
+          </div>
+          
+          <div class="button-row">
+            <button class="btn-primary" id="place-btn">Place</button>
+            <button id="erase-btn">Erase</button>
+            <button id="reset-btn">Reset</button>
+          </div>
+          
+          <div class="section-title" style="margin-top:1.5rem; padding:0 0 0.5rem 0; border-bottom: 1px solid var(--border-color);">Narrative Log</div>
+          <div id="vertical-log" style="height: 150px; overflow-y: auto; margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);"></div>
+        </div>
+      </div>
+      
+      <!-- Main content area -->
+      <div class="content-area">
+        <div class="grid-panel">
+          <div class="section-title">LEGOS Snap Grid</div>
+          
+          <div class="legos-grid" id="legos-grid">
+            <!-- Grid cells will be added by JavaScript -->
+          </div>
+          
+          <div class="button-row" style="margin-top: 1.5rem; justify-content: center;">
+            <button class="btn-primary" id="start-btn">Start</button>
+            <button id="stop-btn">Stop</button>
+            <button id="export-btn">
+              Export
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; vertical-align: text-top;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </button>
+          </div>
+        </div>
+        
+        <div class="narrative-panel">
+          <div class="section-title">Narrative Log</div>
+          
+          <div class="narrative-log" id="narrative-log">
+            <!-- Narrative content will be added by JavaScript -->
+          </div>
+          <div class="narrative-controls">
+            <div class="slider-control">
+              <label>Scan Speed:</label>
+              <input type="range" id="scan-slider" min="100" max="2000" step="100" value="500">
+            </div>
+            <div class="slider-control">
+              <label>Evolution Rate:</label>
+              <input type="range" id="evolution-slider" min="1" max="10" step="1" value="5">
+            </div>
+            <button id="pause-scan-btn">Pause Scan</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Control bar with input and send -->
+      <div class="control-bar">
+        <div class="control-buttons">
+          <button id="ca-mode-btn">CA Mode</button>
+          <div class="speed-control">
+            <label for="speed-slider">Speed:</label>
+            <input type="range" id="speed-slider" min="100" max="2000" step="100" value="800">
+          </div>
+        </div>
+        
+        <input type="text" id="message-input" class="message-input" placeholder="Type a message to name a LEGOS element...">
+        
+        <div class="send-button" id="send-button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <script>
+    // LEGOS types
+    const blockTypes = [
+      {type: 'Location', symbol: 'L', className: 'location'},
+      {type: 'Entity', symbol: 'E', className: 'entity'},
+      {type: 'Goal', symbol: 'G', className: 'goal'},
+      {type: 'Obstacle', symbol: 'O', className: 'obstacle'},
+      {type: 'Shift', symbol: 'S', className: 'shift'},
+      {type: 'Solution', symbol: 'U', className: 'solution'}
+    ];
+    
+    // Grid dimensions
+    const gridSize = 7;
+    
+    // Initialize grid
+    let grid = Array.from({length: gridSize}, () => Array(gridSize).fill(null));
+    let blockStates = Array.from({length: gridSize}, () => Array(gridSize).fill(null));
+    let mode = 'place';
+    let activeBlockType = 'Entity';
+    let automatonMode = false;
+    let autoStepIntervalId = null;
+    let narrativeLog = [];
+    let stepCount = 0;
+    let simSpeed = 800;
+    let scanSpeed = 500;
+    let evolutionRate = 5;
+    let scanPaused = false;
+    let activeScanLine = 0; // Current active scan line
+    let scanIntervalId = null; // For controlling scan movement
+    let scanLines = []; // Array holding scan line data for each row
+    
+    // LEGOS universe tracking
+    let universe = {
+      cycle: 0,
+      state: "static", // static, evolving, chaotic
+      legosCounts: {
+        Location: 0,
+        Entity: 0,
+        Goal: 0,
+        Obstacle: 0,
+        Shift: 0,
+        Solution: 0
+      }
+    };
+    
+    // Named blocks for narrative enhancement
+    let namedBlocks = {};
+    
+    // Init UI
+    function initUI() {
+      const gridEl = document.getElementById('legos-grid');
+      
+      // Create grid cells
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          const cell = document.createElement('div');
+          cell.className = 'legos-cell';
+          cell.dataset.x = x;
+          cell.dataset.y = y;
+          cell.addEventListener('click', () => placeLego(x, y));
+          gridEl.appendChild(cell);
+        }
+      }
+      
+      // Initialize scan lines (one per grid row)
+      scanLines = Array(gridSize).fill().map(() => ({ 
+        legos: Array(gridSize).fill(null),
+        text: '',
+        active: false 
+      }));
+      
+      // Setup buttons
+      document.getElementById('place-btn').addEventListener('click', () => setMode('place'));
+      document.getElementById('erase-btn').addEventListener('click', () => setMode('erase'));
+      document.getElementById('reset-btn').addEventListener('click', resetGrid);
+      document.getElementById('start-btn').addEventListener('click', startSimulation);
+      document.getElementById('stop-btn').addEventListener('click', stopSimulation);
+      document.getElementById('ca-mode-btn').addEventListener('click', toggleCAMode);
+      document.getElementById('send-button').addEventListener('click', sendMessage);
+      document.getElementById('pause-scan-btn').addEventListener('click', toggleScanPause);
+      
+      // Set up scan controls
+      document.getElementById('scan-slider').addEventListener('change', function() {
+        scanSpeed = parseInt(this.value);
+        if (scanIntervalId) {
+          resetScanInterval();
+        }
+      });
+      
+      document.getElementById('evolution-slider').addEventListener('change', function() {
+        evolutionRate = parseInt(this.value);
+      });
+      
+      // Block palette clicks
+      document.querySelectorAll('.block-item').forEach((item, index) => {
+        item.addEventListener('click', () => {
+          activeBlockType = blockTypes[index].type;
+          setMode('place');
+        });
+      });
+      
+      // Set initial block
+      activeBlockType = 'Entity';
+      
+      // Add sample narrative
+      addNarrativeEvent('System initialized and ready.');
+      addNarrativeEvent('Place some LEGOS blocks and hit Start.');
+      
+      // Start scan line animation
+      startScanAnimation();
+    }
+    
+    // Toggle scan pause
+    function toggleScanPause() {
+      scanPaused = !scanPaused;
+      document.getElementById('pause-scan-btn').textContent = scanPaused ? 'Resume Scan' : 'Pause Scan';
+      
+      if (!scanPaused && !scanIntervalId) {
+        startScanAnimation();
+      }
+    }
+    
+    // Start scan animation
+    function startScanAnimation() {
+      if (scanIntervalId) {
+        clearInterval(scanIntervalId);
+      }
+      
+      scanIntervalId = setInterval(() => {
+        if (!scanPaused) {
+          // Move scan line
+          scanLines[activeScanLine].active = false;
+          activeScanLine = (activeScanLine + 1) % gridSize;
+          scanLines[activeScanLine].active = true;
+          
+          // Update narrative display
+          renderNarrativeLogs();
+        }
+      }, scanSpeed);
+    }
+    
+    // Reset scan interval
+    function resetScanInterval() {
+      if (scanIntervalId) {
+        clearInterval(scanIntervalId);
+        scanIntervalId = null;
+      }
+      startScanAnimation();
+    }
+    
+    // Set interaction mode
+    function setMode(newMode) {
+      mode = newMode;
+      document.getElementById('place-btn').classList.toggle('btn-primary', mode === 'place');
+      document.getElementById('erase-btn').classList.toggle('btn-primary', mode === 'erase');
+    }
+    
+    // Place or erase LEGO
+    function placeLego(x, y) {
+      if (mode === 'place') {
+        grid[y][x] = { type: activeBlockType };
+        // Initialize block state
+        blockStates[y][x] = {
+          age: 0,
+          cyclesWithoutGoal: 0,
+          cyclesWithoutObstacle: 0,
+          markedForTransform: false,
+          transformTo: null,
+          cycleCreated: universe.cycle
+        };
+        
+        // Check for named block
+        const message = document.getElementById('message-input').value.trim();
+        if (message) {
+          namedBlocks[`${x},${y}`] = message;
+          addNarrativeEvent(`Placed ${activeBlockType} "${message}" at (${x+1},${y+1})`);
+          document.getElementById('message-input').value = '';
+        } else {
+          addNarrativeEvent(`Placed ${activeBlockType} at (${x+1},${y+1})`);
+        }
+      } else if (mode === 'erase') {
+        if (grid[y][x]) {
+          const type = grid[y][x].type;
+          
+          // Check if it was named
+          const key = `${x},${y}`;
+          let name = '';
+          if (namedBlocks[key]) {
+            name = ` "${namedBlocks[key]}"`;
+            delete namedBlocks[key];
+          }
+          
+          grid[y][x] = null;
+          blockStates[y][x] = null;
+          addNarrativeEvent(`Removed ${type}${name} from (${x+1},${y+1})`);
+        }
+      }
+      updateLEGOSCounts();
+      renderGrid();
+    }
+    
+    // Reset grid
+    function resetGrid() {
+      grid = Array.from({length: gridSize}, () => Array(gridSize).fill(null));
+      blockStates = Array.from({length: gridSize}, () => Array(gridSize).fill(null));
+      namedBlocks = {};
+      addNarrativeEvent('Grid has been reset.');
+      updateLEGOSCounts();
+      renderGrid();
+    }
+    
+    // Render grid state
+    function renderGrid(animatedCells = [], transformingCells = []) {
+      const cells = document.querySelectorAll('.legos-cell');
+      cells.forEach(cell => {
+        const x = parseInt(cell.dataset.x);
+        const y = parseInt(cell.dataset.y);
+        
+        // Clear cell
+        cell.innerHTML = '';
+        
+        // Add block if exists
+        if (grid[y][x]) {
+          const type = grid[y][x].type;
+          const blockData = blockTypes.find(b => b.type === type);
+          const block = document.createElement('div');
+          block.className = `legos-block ${blockData.className}`;
+          block.textContent = blockData.symbol;
+          
+          // Add name tooltip if named
+          const key = `${x},${y}`;
+          if (namedBlocks[key]) {
+            block.title = namedBlocks[key];
+            // Add a small indicator that this is a named block
+            const nameIndicator = document.createElement('span');
+            nameIndicator.className = 'name-indicator';
+            nameIndicator.textContent = '✓';
+            block.appendChild(nameIndicator);
+          }
+          
+          // Add animation classes
+          const isAnimated = animatedCells.some(([ax, ay]) => ax === x && ay === y);
+          const isTransforming = transformingCells.some(([tx, ty]) => tx === x && ty === y);
+          
+          if (isAnimated) {
+            cell.classList.add('animated');
+            setTimeout(() => cell.classList.remove('animated'), 800);
+          }
+          
+          if (isTransforming) {
+            block.classList.add('transforming');
+          }
+          
+          // Add age indicator for CA mode
+          if (automatonMode && blockStates[y][x]) {
+            const ageIndicator = document.createElement('div');
+            ageIndicator.className = 'age-indicator';
+            ageIndicator.textContent = blockStates[y][x].age;
+            block.appendChild(ageIndicator);
+          }
+          
+          cell.appendChild(block);
+        }
+      });
+      
+      // Update universe stats in the UI
+      updateLEGOSCounts();
+      renderNarrativeLogs();
+    }
+    
+    // Add narrative event
+    function addNarrativeEvent(text) {
+      const event = {
+        text: text,
+        cycle: universe.cycle,
+        key: extractKeyPhrase(text),
+        timestamp: new Date().toLocaleTimeString(),
+        legoStates: captureGridState() // Snapshot of grid state
+      };
+      
+      narrativeLog.push(event);
+      
+      // Update the current scan line with the new event
+      if (!scanPaused) {
+        const legosInEvent = extractLegosFromEvent(text);
+        const currentLine = scanLines[activeScanLine];
+        
+        // Shift existing LEGOs left
+        for (let i = 0; i < gridSize - 1; i++) {
+          currentLine.legos[i] = currentLine.legos[i+1];
+        }
+        
+        // Add new LEGO at the end if there was one in the event
+        currentLine.legos[gridSize-1] = legosInEvent;
+        currentLine.text = text;
+      }
+      
+      // Limit log size to prevent performance issues
+      if (narrativeLog.length > 100) {
+        narrativeLog = narrativeLog.slice(-100);
+      }
+      
+      renderNarrativeLogs();
+      updateLEGOSCounts();
+    }
+    
+    // Capture the current grid state for history
+    function captureGridState() {
+      return JSON.parse(JSON.stringify({
+        grid: grid,
+        legosCounts: universe.legosCounts,
+        cycle: universe.cycle
+      }));
+    }
+    
+    // Extract LEGO types from event text
+    function extractLegosFromEvent(text) {
+      // Extract the most relevant LEGO type from the event text
+      if (text.includes('Location')) return { type: 'Location', symbol: 'L', className: 'location' };
+      if (text.includes('Entity')) return { type: 'Entity', symbol: 'E', className: 'entity' };
+      if (text.includes('Goal')) return { type: 'Goal', symbol: 'G', className: 'goal' };
+      if (text.includes('Obstacle')) return { type: 'Obstacle', symbol: 'O', className: 'obstacle' };
+      if (text.includes('Shift')) return { type: 'Shift', symbol: 'S', className: 'shift' };
+      if (text.includes('Solution')) return { type: 'Solution', symbol: 'U', className: 'solution' };
+      return null;
+    }
+    
+    // Render narrative logs (vertical and grid)
+    function renderNarrativeLogs() {
+      // Update vertical log (stats and recent events)
+      const verticalLog = document.getElementById('vertical-log');
+      verticalLog.innerHTML = '';
+      
+      // Add LEGOS counts to the top
+      const statsDiv = document.createElement('div');
+      statsDiv.className = 'stats-container';
+      statsDiv.innerHTML = `
+        <div class="stats-header">LEGOS Count (Cycle ${universe.cycle}):</div>
+        <div class="stats-grid">
+          <span class="stat-item"><span class="stat-circle location">L</span> ${universe.legosCounts.Location}</span>
+          <span class="stat-item"><span class="stat-circle entity">E</span> ${universe.legosCounts.Entity}</span>
+          <span class="stat-item"><span class="stat-circle goal">G</span> ${universe.legosCounts.Goal}</span>
+          <span class="stat-item"><span class="stat-circle obstacle">O</span> ${universe.legosCounts.Obstacle}</span>
+          <span class="stat-item"><span class="stat-circle shift">S</span> ${universe.legosCounts.Shift}</span>
+          <span class="stat-item"><span class="stat-circle solution">U</span> ${universe.legosCounts.Solution}</span>
+        </div>
+        <div class="universe-state ${universe.state}">Universe: ${universe.state}</div>
+      `;
+      verticalLog.appendChild(statsDiv);
+      
+      // Add separator
+      const separator = document.createElement('div');
+      separator.className = 'log-separator';
+      verticalLog.appendChild(separator);
+      
+      // Show recent events first (newest at top)
+      narrativeLog.slice().reverse().slice(0, 15).forEach(event => {
+        const eventEl = document.createElement('div');
+        eventEl.className = 'log-entry fade-in';
+        eventEl.innerHTML = `
+          <span class="log-time">${event.timestamp}</span>
+          <span class="log-key">${event.key}</span>
+          <span class="log-text">${event.text}</span>
+        `;
+        verticalLog.appendChild(eventEl);
+      });
+      
+      // Update narrative log panel as slit scan view
+      const narrativePanel = document.getElementById('narrative-log');
+      narrativePanel.innerHTML = '';
+      
+      // Create scan lines - one for each row in the grid
+      for (let i = 0; i < gridSize; i++) {
+        const scanLine = document.createElement('div');
+        scanLine.className = `narrative-scan-line ${scanLines[i].active ? 'active' : ''}`;
+        scanLine.dataset.row = i;
+        
+        // Add LEGOs to scan line
+        let scanContent = '';
+        for (let j = 0; j < gridSize; j++) {
+          const lego = scanLines[i].legos[j];
+          if (lego) {
+            scanContent += `<div class="scan-lego ${lego.className}">${lego.symbol}</div>`;
+          }
+        }
+        
+        // Add text content
+        scanContent += `<div class="scan-text">${scanLines[i].text || 'Waiting for narrative...'}</div>`;
+        
+        // Add rename button
+        scanContent += `
+          <div class="scan-action">
+            <button class="rename-btn" data-row="${i}">Rename</button>
+          </div>
+        `;
+        
+        scanLine.innerHTML = scanContent;
+        
+        // Add event listeners
+        scanLine.addEventListener('click', () => {
+          if (scanPaused) {
+            selectScanLine(i);
+          }
+        });
+        
+        narrativePanel.appendChild(scanLine);
+      }
+      
+      // Add rename button event listeners
+      document.querySelectorAll('.rename-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const row = parseInt(btn.dataset.row);
+          renameLegosInScanLine(row);
+        });
+      });
+    }
+    
+    // Select a scan line when paused
+    function selectScanLine(row) {
+      document.querySelectorAll('.narrative-scan-line').forEach(line => {
+        line.classList.remove('active');
+      });
+      
+      document.querySelector(`.narrative-scan-line[data-row="${row}"]`).classList.add('active');
+      activeScanLine = row;
+      
+      // Highlight the corresponding grid row
+      document.querySelectorAll('.legos-cell').forEach(cell => {
+        const y = parseInt(cell.dataset.y);
+        if (y === row) {
+          cell.classList.add('highlight');
+        } else {
+          cell.classList.remove('highlight');
+        }
+      });
+    }
+    
+    // Rename LEGOs in a scan line
+    function renameLegosInScanLine(row) {
+      const message = document.getElementById('message-input').value.trim();
+      if (!message) {
+        alert('Please type a name in the message input first');
+        return;
+      }
+      
+      // Find first non-null LEGO in the selected scan line
+      const legos = scanLines[row].legos;
+      let foundLego = false;
+      
+      for (let j = 0; j < legos.length; j++) {
+        if (legos[j]) {
+          // Find the actual corresponding LEGO in the grid
+          for (let y = 0; y < gridSize; y++) {
+            for (let x = 0; x < gridSize; x++) {
+              if (grid[y][x] && grid[y][x].type === legos[j].type) {
+                // Name or rename this LEGO
+                namedBlocks[`${x},${y}`] = message;
+                addNarrativeEvent(`Named ${grid[y][x].type} at (${x+1},${y+1}) as "${message}"`);
+                document.getElementById('message-input').value = '';
+                foundLego = true;
+                break;
+              }
+            }
+            if (foundLego) break;
+          }
+          break;
+        }
+      }
+      
+      if (!foundLego) {
+        addNarrativeEvent(`No LEGO found in line ${row+1} to name`);
+      }
+      
+      renderGrid();
+    }
+    
+    // Toggle CA Mode
+    function toggleCAMode() {
+      automatonMode = !automatonMode;
+      document.getElementById('ca-mode-btn').classList.toggle('btn-primary', automatonMode);
+      
+      if (automatonMode) {
+        // Initialize block states if not already initialized
+        for (let y = 0; y < gridSize; y++) {
+          for (let x = 0; x < gridSize; x++) {
+            if (grid[y][x] && !blockStates[y][x]) {
+              blockStates[y][x] = {
+                age: 0,
+                cyclesWithoutGoal: 0,
+                cyclesWithoutObstacle: 0,
+                markedForTransform: false,
+                transformTo: null,
+                cycleCreated: universe.cycle
+              };
+            }
+          }
+        }
+        addNarrativeEvent('Cellular Automaton Mode activated. LEGOS narrative rules now in effect.');
+      } else {
+        addNarrativeEvent('Returned to standard procedural rules.');
+      }
+      
+      renderGrid();
+    }
+    
+    // Start simulation
+    function startSimulation() {
+      if (autoStepIntervalId) return;
+      
+      addNarrativeEvent('Simulation started.');
+      simSpeed = parseInt(document.getElementById('speed-slider').value);
+      autoStepIntervalId = setInterval(simulationStep, simSpeed);
+      document.getElementById('start-btn').classList.remove('btn-primary');
+      document.getElementById('stop-btn').classList.add('btn-primary');
+      
+      // Add event listener for speed changes
+      document.getElementById('speed-slider').addEventListener('change', function() {
+        if (autoStepIntervalId) {
+          clearInterval(autoStepIntervalId);
+          simSpeed = parseInt(this.value);
+          autoStepIntervalId = setInterval(simulationStep, simSpeed);
+          addNarrativeEvent(`Simulation speed adjusted to ${simSpeed}ms.`);
+        }
+      });
+    }
+    
+    // Stop simulation
+    function stopSimulation() {
+      if (!autoStepIntervalId) return;
+      
+      clearInterval(autoStepIntervalId);
+      autoStepIntervalId = null;
+      addNarrativeEvent('Simulation paused.');
+      document.getElementById('stop-btn').classList.remove('btn-primary');
+      document.getElementById('start-btn').classList.add('btn-primary');
+    }
+    
+    // Simulation step
+    function simulationStep() {
+      stepCount++;
+      universe.cycle++;
+      
+      // Prepare new grid and states
+      let newGrid = grid.map(row => row.slice());
+      let newStates = JSON.parse(JSON.stringify(blockStates));
+      let animated = [];
+      let transforming = [];
+      let events = [];
+      let changes = 0;
+      
+      if (automatonMode) {
+        // Update all block ages
+        for (let y = 0; y < gridSize; y++) {
+          for (let x = 0; x < gridSize; x++) {
+            if (grid[y][x]) {
+              // Increment age for all blocks
+              if (newStates[y][x]) {
+                newStates[y][x].age++;
+              } else {
+                newStates[y][x] = {
+                  age: 1,
+                  cyclesWithoutGoal: 0,
+                  cyclesWithoutObstacle: 0,
+                  markedForTransform: false,
+                  transformTo: null,
+                  cycleCreated: universe.cycle
+                };
+              }
+            }
+          }
+        }
+        
+        // LEGOS Narrative Automaton - Process each cell according to its type and rules
+        for (let y = 0; y < gridSize; y++) {
+          for (let x = 0; x < gridSize; x++) {
+            const block = grid[y][x];
+            
+            if (!block) {
+              // Rule for empty cells: Chance for a barren cell to become Location
+              if (Math.random() < 0.03) {
+                const nbs = countLivingNeighbors(x, y);
+                if (nbs > 0 && nbs < 3) {
+                  newGrid[y][x] = {type: 'Location'};
+                  newStates[y][x] = {
+                    age: 0,
+                    cyclesWithoutGoal: 0,
+                    cyclesWithoutObstacle: 0,
+                    markedForTransform: false,
+                    transformTo: null,
+                    cycleCreated: universe.cycle
+                  };
+                  animated.push([x, y]);
+                  
+                  // Check if we have a named location from message input
+                  const message = document.getElementById('message-input').value.trim();
+                  if (message) {
+                    namedBlocks[`${x},${y}`] = message;
+                    events.push(`New Location "${message}" emerged at (${x+1},${y+1}), grounding the narrative.`);
+                    document.getElementById('message-input').value = '';
+                  } else {
+                    events.push(`New Location emerged at (${x+1},${y+1}), grounding the narrative.`);
+                  }
+                  
+                  changes++;
+                }
+              }
+              continue;
+            }
+            
+            // Process by block type
+            switch (block.type) {
+              case 'Location':
+                // Rule: Location attracts birth of Entity
+                if (newStates[y][x].age > 3 && Math.random() < 0.15) {
+                  const emptyNeighbors = getEmptyNeighborCoords(x, y);
+                  if (emptyNeighbors.length > 0) {
+                    const [nx, ny] = emptyNeighbors[Math.floor(Math.random() * emptyNeighbors.length)];
+                    newGrid[ny][nx] = {type: 'Entity'};
+                    newStates[ny][nx] = {
+                      age: 0,
+                      cyclesWithoutGoal: 0,
+                      cyclesWithoutObstacle: 0,
+                      markedForTransform: false,
+                      transformTo: null,
+                      cycleCreated: universe.cycle
+                    };
+                    animated.push([nx, ny]);
+                    
+                    // Handle name if named
+                    let locName = '';
+                    if (namedBlocks[`${x},${y}`]) {
+                      locName = ` from "${namedBlocks[`${x},${y}`]}"`;
+                    }
+                    
+                    // Check for message input for naming
+                    const message = document.getElementById('message-input').value.trim();
+                    if (message) {
+                      namedBlocks[`${nx},${ny}`] = message;
+                      events.push(`Entity "${message}" emerged at (${nx+1},${ny+1})${locName}.`);
+                      document.getElementById('message-input').value = '';
+                    } else {
+                      events.push(`Entity emerged at (${nx+1},${ny+1})${locName}.`);
+                    }
+                    
+                    changes++;
+                  }
+                }
+                break;
+                
+              case 'Entity':
+                // Entity drifts toward Goal
+                const closestGoal = findClosestGoal(x, y);
+                
+                if (closestGoal) {
+                  // Reset counter when a Goal exists
+                  newStates[y][x].cyclesWithoutGoal = 0;
+                  
+                  // Check if adjacent to Goal
+                  const adjacentToGoal = neighborCoords(x, y).some(([nx, ny]) => 
+                    grid[ny][nx] && grid[ny][nx].type === 'Goal'
+                  );
+                  
+                  if (adjacentToGoal) {
+                    // Entity transforms to Solution when reaching Goal
+                    newGrid[y][x] = {type: 'Solution'};
+                    newStates[y][x] = {
+                      age: 0,
+                      cyclesWithoutGoal: 0,
+                      cyclesWithoutObstacle: 0,
+                      markedForTransform: false,
+                      transformTo: null,
+                      cycleCreated: universe.cycle
+                    };
+                    animated.push([x, y]);
+                    transforming.push([x, y]);
+                    
+                    // Handle name if named
+                    let entityName = '';
+                    if (namedBlocks[`${x},${y}`]) {
+                      entityName = ` "${namedBlocks[`${x},${y}`]}"`;
+                      // Transfer name to the solution
+                      namedBlocks[`${x},${y}`] = namedBlocks[`${x},${y}`] + " (Solution)";
+                    }
+                    
+                    events.push(`Entity${entityName} at (${x+1},${y+1}) fulfilled its quest and became a Solution.`);
+                    changes++;
+                  } else {
+                    // Move toward goal - implement a simple movement
+                    const nextPos = getNextCellTowardGoal(x, y, closestGoal.x, closestGoal.y);
+                    if (nextPos && grid[nextPos[1]][nextPos[0]] === null) {
+                      const [nx, ny] = nextPos;
+                      
+                      // Move entity to new position
+                      newGrid[ny][nx] = {type: 'Entity'};
+                      newGrid[y][x] = null;
+                      
+                      // Move state and name as well
+                      newStates[ny][nx] = newStates[y][x];
+                      newStates[y][x] = null;
+                      
+                      // Handle name transfer if named
+                      if (namedBlocks[`${x},${y}`]) {
+                        namedBlocks[`${nx},${ny}`] = namedBlocks[`${x},${y}`];
+                        delete namedBlocks[`${x},${y}`];
+                        
+                        events.push(`Entity "${namedBlocks[`${nx},${ny}`]}" moved toward Goal from (${x+1},${y+1}) to (${nx+1},${ny+1}).`);
+                      } else {
+                        events.push(`Entity moved toward Goal from (${x+1},${y+1}) to (${nx+1},${ny+1}).`);
+                      }
+                      
+                      animated.push([nx, ny]);
+                      animated.push([x, y]);
+                      changes++;
+                    }
+                  }
+                } else {
+                  // Entity fades after 12 cycles without Goal
+                  newStates[y][x].cyclesWithoutGoal++;
+                  if (newStates[y][x].cyclesWithoutGoal >= 12) {
+                    newGrid[y][x] = null;
+                    newStates[y][x] = null;
+                    animated.push([x, y]);
+                    
+                    // Handle name if named
+                    let entityName = '';
+                    if (namedBlocks[`${x},${y}`]) {
+                      entityName = ` "${namedBlocks[`${x},${y}`]}"`;
+                      delete namedBlocks[`${x},${y}`];
+                    }
+                    
+                    events.push(`Entity${entityName} at (${x+1},${y+1}) faded away after wandering without purpose.`);
+                    changes++;
+                  }
+                }
+                
+                // Check if adjacent to Obstacle - transform to Shift
+                const adjacentToObstacle = neighborCoords(x, y).some(([nx, ny]) => 
+                  grid[ny][nx] && grid[ny][nx].type === 'Obstacle'
+                );
+                
+                if (adjacentToObstacle) {
+                  newGrid[y][x] = {type: 'Shift'};
+                  newStates[y][x] = {
+                    age: 0,
+                    cyclesWithoutGoal: 0,
+                    cyclesWithoutObstacle: 0,
+                    markedForTransform: false,
+                    transformTo: null,
+                    cycleCreated: universe.cycle
+                  };
+                  animated.push([x, y]);
+                  transforming.push([x, y]);
+                  
+                  // Handle name if named
+                  let entityName = '';
+                  if (namedBlocks[`${x},${y}`]) {
+                    entityName = ` "${namedBlocks[`${x},${y}`]}"`;
+                    // Update name to reflect transformation
+                    namedBlocks[`${x},${y}`] = namedBlocks[`${x},${y}`] + " (Shifted)";
+                  }
+                  
+                  events.push(`Entity${entityName} at (${x+1},${y+1}) encountered an Obstacle and transformed into a Shift.`);
+                  changes++;
+                }
+                break;
+                
+              case 'Goal':
+                // Rule: Goal buds Obstacle (20% chance)
+                if (Math.random() < 0.2) {
+                  const emptyNeighbors = getEmptyNeighborCoords(x, y);
+                  if (emptyNeighbors.length > 0) {
+                    const [nx, ny] = emptyNeighbors[Math.floor(Math.random() * emptyNeighbors.length)];
+                    newGrid[ny][nx] = {type: 'Obstacle'};
+                    newStates[ny][nx] = {
+                      age: 0,
+                      cyclesWithoutGoal: 0,
+                      cyclesWithoutObstacle: 0,
+                      markedForTransform: false,
+                      transformTo: null,
+                      cycleCreated: universe.cycle
+                    };
+                    animated.push([nx, ny]);
+                    
+                    // Handle naming
+                    let goalName = '';
+                    if (namedBlocks[`${x},${y}`]) {
+                      goalName = ` "${namedBlocks[`${x},${y}`]}"`;
+                    }
+                    
+                    // Check for message input for naming
+                    const message = document.getElementById('message-input').value.trim();
+                    if (message) {
+                      namedBlocks[`${nx},${ny}`] = message;
+                      events.push(`Goal${goalName} at (${x+1},${y+1}) created Obstacle "${message}" at (${nx+1},${ny+1}).`);
+                      document.getElementById('message-input').value = '';
+                    } else {
+                      events.push(`Goal${goalName} at (${x+1},${y+1}) created a new Obstacle at (${nx+1},${ny+1}).`);
+                    }
+                    
+                    changes++;
+                  }
+                }
+                
+                // Goal reverts to Location after 8 cycles of neglect
+                let goalTouched = neighborCoords(x, y).some(([nx, ny]) => 
+                  grid[ny][nx] && grid[ny][nx].type === 'Entity'
+                );
+                
+                if (!goalTouched && newStates[y][x].age >= 8) {
+                  newGrid[y][x] = {type: 'Location'};
+                  newStates[y][x] = {
+                    age: 0,
+                    cyclesWithoutGoal: 0,
+                    cyclesWithoutObstacle: 0,
+                    markedForTransform: false,
+                    transformTo: null,
+                    cycleCreated: universe.cycle
+                  };
+                  animated.push([x, y]);
+                  transforming.push([x, y]);
+                  
+                  // Handle name if named
+                  let goalName = '';
+                  if (namedBlocks[`${x},${y}`]) {
+                    goalName = ` "${namedBlocks[`${x},${y}`]}"`;
+                    // Update name to reflect transformation
+                    namedBlocks[`${x},${y}`] = namedBlocks[`${x},${y}`] + " (Faded)";
+                  }
+                  
+                  events.push(`Untouched Goal${goalName} at (${x+1},${y+1}) faded back to Location from neglect.`);
+                  changes++;
+                }
+                break;
+                
+              case 'Obstacle':
+                // Adjacent Solution erodes Obstacle into Shift
+                const adjacentToSolution = neighborCoords(x, y).some(([nx, ny]) => 
+                  grid[ny][nx] && grid[ny][nx].type === 'Solution'
+                );
+                
+                if (adjacentToSolution) {
+                  newGrid[y][x] = {type: 'Shift'};
+                  newStates[y][x] = {
+                    age: 0,
+                    cyclesWithoutGoal: 0,
+                    cyclesWithoutObstacle: 0,
+                    markedForTransform: false,
+                    transformTo: null,
+                    cycleCreated: universe.cycle
+                  };
+                  animated.push([x, y]);
+                  transforming.push([x, y]);
+                  
+                  // Handle name if named
+                  let obstacleName = '';
+                  if (namedBlocks[`${x},${y}`]) {
+                    obstacleName = ` "${namedBlocks[`${x},${y}`]}"`;
+                    // Update name to reflect transformation
+                    namedBlocks[`${x},${y}`] = namedBlocks[`${x},${y}`] + " (Eroded)";
+                  }
+                  
+                  events.push(`Obstacle${obstacleName} at (${x+1},${y+1}) was eroded by a Solution into a Shift.`);
+                  changes++;
+                }
+                break;
+                
+              case 'Shift':
+                // Shift spreads to empty neighbor each tick
+                const emptyNeighbors = getEmptyNeighborCoords(x, y);
+                if (emptyNeighbors.length > 0) {
+                  const [nx, ny] = emptyNeighbors[Math.floor(Math.random() * emptyNeighbors.length)];
+                  newGrid[ny][nx] = {type: 'Shift'};
+                  newStates[ny][nx] = {
+                    age: 0,
+                    cyclesWithoutGoal: 0,
+                    cyclesWithoutObstacle: 0,
+                    markedForTransform: false,
+                    transformTo: null,
+                    cycleCreated: universe.cycle
+                  };
+                  animated.push([nx, ny]);
+                  
+                  // Handle name if named
+                  let shiftName = '';
+                  if (namedBlocks[`${x},${y}`]) {
+                    shiftName = ` "${namedBlocks[`${x},${y}`]}"`;
+                    // Propagate name with indication
+                    namedBlocks[`${nx},${ny}`] = namedBlocks[`${x},${y}`] + " (Propagated)";
+                  }
+                  
+                  events.push(`Shift${shiftName} at (${x+1},${y+1}) propagated to (${nx+1},${ny+1}).`);
+                  changes++;
+                }
+                
+                // Shift with Entity nearby but no Goal becomes Solution
+                const entityNearby = neighborCoords(x, y).some(([nx, ny]) => 
+                  grid[ny][nx] && grid[ny][nx].type === 'Entity'
+                );
+                
+                const noGoalNearby = !neighborCoords(x, y).some(([nx, ny]) => 
+                  grid[ny][nx] && grid[ny][nx].type === 'Goal'
+                );
+                
+                if (entityNearby && noGoalNearby) {
+                  newGrid[y][x] = {type: 'Solution'};
+                  newStates[y][x] = {
+                    age: 0,
+                    cyclesWithoutGoal: 0,
+                    cyclesWithoutObstacle: 0,
+                    markedForTransform: false,
+                    transformTo: null,
+                    cycleCreated: universe.cycle
+                  };
+                  animated.push([x, y]);
+                  transforming.push([x, y]);
+                  
+                  // Handle name if named
+                  let shiftName = '';
+                  if (namedBlocks[`${x},${y}`]) {
+                    shiftName = ` "${namedBlocks[`${x},${y}`]}"`;
+                    // Update name to reflect transformation
+                    namedBlocks[`${x},${y}`] = namedBlocks[`${x},${y}`] + " (Stabilized)";
+                  }
+                  
+                  events.push(`Shift${shiftName} at (${x+1},${y+1}) stabilized into a Solution when an Entity arrived.`);
+                  changes++;
+                }
+                break;
+                
+              case 'Solution':
+                // Solution sinks to Location after 6 cycles with nothing to fix
+                let obstacleNearby = neighborCoords(x, y).some(([nx, ny]) => 
+                  grid[ny][nx] && grid[ny][nx].type === 'Obstacle'
+                );
+                
+                if (!obstacleNearby) {
+                  newStates[y][x].cyclesWithoutObstacle++;
+                } else {
+                  newStates[y][x].cyclesWithoutObstacle = 0;
+                }
+                
+                if (newStates[y][x].cyclesWithoutObstacle >= 6) {
+                  // Before sinking, plant a Goal
+                  const emptyNeighbors = getEmptyNeighborCoords(x, y);
+                  if (emptyNeighbors.length > 0) {
+                    const [nx, ny] = emptyNeighbors[Math.floor(Math.random() * emptyNeighbors.length)];
+                    newGrid[ny][nx] = {type: 'Goal'};
+                    newStates[ny][nx] = {
+                      age: 0,
+                      cyclesWithoutGoal: 0,
+                      cyclesWithoutObstacle: 0,
+                      markedForTransform: false,
+                      transformTo: null,
+                      cycleCreated: universe.cycle
+                    };
+                    animated.push([nx, ny]);
+                    
+                    // Handle naming
+                    let solutionName = '';
+                    if (namedBlocks[`${x},${y}`]) {
+                      solutionName = ` "${namedBlocks[`${x},${y}`]}"`;
+                    }
+                    
+                    // Check for message input for naming
+                    const message = document.getElementById('message-input').value.trim();
+                    if (message) {
+                      namedBlocks[`${nx},${ny}`] = message;
+                      events.push(`Retiring Solution${solutionName} at (${x+1},${y+1}) seeded a new Goal "${message}" at (${nx+1},${ny+1}).`);
+                      document.getElementById('message-input').value = '';
+                    } else {
+                      events.push(`Retiring Solution${solutionName} at (${x+1},${y+1}) seeded a new Goal at (${nx+1},${ny+1}).`);
+                    }
+                    
+                    changes++;
+                  }
+                  
+                  // Now transform to Location
+                  newGrid[y][x] = {type: 'Location'};
+                  newStates[y][x] = {
+                    age: 0,
+                    cyclesWithoutGoal: 0,
+                    cyclesWithoutObstacle: 0,
+                    markedForTransform: false,
+                    transformTo: null,
+                    cycleCreated: universe.cycle
+                  };
+                  animated.push([x, y]);
+                  transforming.push([x, y]);
+                  
+                  // Handle name if named
+                  let solutionName = '';
+                  if (namedBlocks[`${x},${y}`]) {
+                    solutionName = ` "${namedBlocks[`${x},${y}`]}"`;
+                    // Update name to reflect transformation
+                    namedBlocks[`${x},${y}`] = namedBlocks[`${x},${y}`] + " (Settled)";
+                  }
+                  
+                  events.push(`Solution${solutionName} at (${x+1},${y+1}) settled back into Location after completing its purpose.`);
+                  changes++;
+                }
+                break;
+            }
+          }
+        }
+      } else {
+        // Simple procedural rules for non-CA mode
+        for (let y = 0; y < gridSize; y++) {
+          for (let x = 0; x < gridSize; x++) {
+            const block = grid[y][x];
+            if (!block) continue;
+            
+            if (block.type === 'Entity') {
+              const nbs = neighbors(x, y);
+              if (nbs.some(b => b && b.type === 'Goal')) {
+                newGrid[y][x] = {type: 'Solution'};
+                animated.push([x, y]);
+                transforming.push([x, y]);
+                
+                // Handle name if named
+                let entityName = '';
+                if (namedBlocks[`${x},${y}`]) {
+                  entityName = ` "${namedBlocks[`${x},${y}`]}"`;
+                  // Update name to reflect transformation
+                  namedBlocks[`${x},${y}`] = namedBlocks[`${x},${y}`] + " (Solved)";
+                }
+                
+                events.push(`Entity${entityName} at (${x+1},${y+1}) reached Goal and became Solution.`);
+                changes++;
+              } else if (nbs.some(b => b && b.type === 'Obstacle')) {
+                newGrid[y][x] = {type: 'Shift'};
+                animated.push([x, y]);
+                transforming.push([x, y]);
+                
+                // Handle name if named
+                let entityName = '';
+                if (namedBlocks[`${x},${y}`]) {
+                  entityName = ` "${namedBlocks[`${x},${y}`]}"`;
+                  // Update name to reflect transformation
+                  namedBlocks[`${x},${y}`] = namedBlocks[`${x},${y}`] + " (Shifted)";
+                }
+                
+                events.push(`Entity${entityName} at (${x+1},${y+1}) encountered Obstacle and became Shift.`);
+                changes++;
+              }
+            } else if (block.type === 'Shift') {
+              const nbs = neighborCoords(x, y);
+              for (const [nx, ny] of nbs) {
+                if (grid[ny][nx] && grid[ny][nx].type === 'Obstacle') {
+                  // Get obstacle name if any
+                  let obstacleName = '';
+                  if (namedBlocks[`${nx},${ny}`]) {
+                    obstacleName = ` "${namedBlocks[`${nx},${ny}`]}"`;
+                    delete namedBlocks[`${nx},${ny}`];
+                  }
+                  
+                  newGrid[ny][nx] = null;
+                  newStates[ny][nx] = null;
+                  animated.push([nx, ny]);
+                  
+                  // Handle name if named
+                  let shiftName = '';
+                  if (namedBlocks[`${x},${y}`]) {
+                    shiftName = ` "${namedBlocks[`${x},${y}`]}"`;
+                  }
+                  
+                  events.push(`Shift${shiftName} at (${x+1},${y+1}) removed Obstacle${obstacleName} at (${nx+1},${ny+1}).`);
+                  changes++;
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Update universe state based on changes
+      if (changes === 0) {
+        if (universe.state !== "static") {
+          events.push(`Universe has reached stability. No further changes occurring.`);
+          universe.state = "static";
+        }
+      } else if (changes > 5) {
+        universe.state = "chaotic";
+        events.push(`LEGOS universe enters a chaotic phase with ${changes} simultaneous changes.`);
+      } else {
+        universe.state = "evolving";
+      }
+      
+      if (events.length === 0) {
+        events.push(`Cycle ${universe.cycle}: No changes observed in this step.`);
+      }
+      
+      // Apply changes
+      grid = newGrid;
+      blockStates = newStates;
+      events.forEach(event => addNarrativeEvent(event));
+      
+      // Update UI
+      updateLEGOSCounts();
+      renderGrid(animated, transforming);
+    }
+    
+    // Send message function 
+    function sendMessage() {
+      const message = document.getElementById('message-input').value.trim();
+      if (message) {
+        if (activeBlockType && mode === 'place') {
+          addNarrativeEvent(`Ready to place ${activeBlockType} named "${message}" on grid. Click a cell to place it.`);
+        } else {
+          addNarrativeEvent(`User: ${message}`);
+          document.getElementById('message-input').value = '';
+        }
+      }
+    }
+    
+    // Helper: Get neighbors of a cell
+    function neighborCoords(x, y) {
+      const coords = [];
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize) {
+            coords.push([nx, ny]);
+          }
+        }
+      }
+      return coords;
+    }
+    
+    // Helper: Get neighbors blocks
+    function neighbors(x, y) {
+      return neighborCoords(x, y).map(([nx, ny]) => grid[ny][nx]);
+    }
+    
+    // Helper: Count living neighbors
+    function countLivingNeighbors(x, y) {
+      return neighbors(x, y).filter(n => n !== null).length;
+    }
+    
+    // Helper: Get empty neighbor coordinates
+    function getEmptyNeighborCoords(x, y) {
+      return neighborCoords(x, y).filter(([nx, ny]) => grid[ny][nx] === null);
+    }
+    
+    // Helper: Find closest Goal
+    function findClosestGoal(x, y) {
+      let closest = null;
+      let minDistance = Infinity;
+      
+      for (let gy = 0; gy < gridSize; gy++) {
+        for (let gx = 0; gx < gridSize; gx++) {
+          if (grid[gy][gx] && grid[gy][gx].type === 'Goal') {
+            const distance = Math.sqrt(Math.pow(gx - x, 2) + Math.pow(gy - y, 2));
+            if (distance < minDistance) {
+              minDistance = distance;
+              closest = {x: gx, y: gy};
+            }
+          }
+        }
+      }
+      
+      return closest;
+    }
+    
+    // Helper: Get next cell toward goal
+    function getNextCellTowardGoal(x, y, goalX, goalY) {
+      // Simple path finding - move toward goal in both axes
+      let dx = 0;
+      let dy = 0;
+      
+      if (x < goalX) dx = 1;
+      else if (x > goalX) dx = -1;
+      
+      if (y < goalY) dy = 1;
+      else if (y > goalY) dy = -1;
+      
+      // Try moving in both directions if possible
+      if (dx !== 0 && dy !== 0) {
+        // Randomly choose horizontal or vertical first
+        if (Math.random() < 0.5) {
+          if (isValidMove(x + dx, y)) return [x + dx, y];
+          if (isValidMove(x, y + dy)) return [x, y + dy];
+        } else {
+          if (isValidMove(x, y + dy)) return [x, y + dy];
+          if (isValidMove(x + dx, y)) return [x + dx, y];
+        }
+      }
+      
+      // Try just horizontal or vertical
+      if (dx !== 0 && isValidMove(x + dx, y)) return [x + dx, y];
+      if (dy !== 0 && isValidMove(x, y + dy)) return [x, y + dy];
+      
+      return null;
+    }
+    
+    // Helper: Check if move is valid
+    function isValidMove(x, y) {
+      if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) return false;
+      return grid[y][x] === null;
+    }
+    
+    // Update LEGOS counts
+    function updateLEGOSCounts() {
+      // Reset counts
+      for (const type in universe.legosCounts) {
+        universe.legosCounts[type] = 0;
+      }
+      
+      // Count each type
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          if (grid[y][x]) {
+            universe.legosCounts[grid[y][x].type]++;
+          }
+        }
+      }
+    }
+    
+    // Extract key phrase from narrative event
+    function extractKeyPhrase(eventText) {
+      // Extract the key part of an event for the grid narrative view
+      if (eventText.includes('emerged')) return 'Emerged';
+      if (eventText.includes('transformed')) return 'Transform';
+      if (eventText.includes('faded')) return 'Faded';
+      if (eventText.includes('reached Goal')) return 'Success';
+      if (eventText.includes('Obstacle')) return 'Challenge';
+      if (eventText.includes('propagated')) return 'Expanded';
+      if (eventText.includes('seeded')) return 'New Goal';
+      if (eventText.includes('stability')) return 'Stability';
+      if (eventText.includes('chaotic')) return 'Chaos';
+      return eventText.split(' ').slice(0, 2).join(' ');
+    }
+    
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', initUI);
+  </script>
+</body>
+</html>
